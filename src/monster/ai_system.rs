@@ -1,11 +1,8 @@
 use bracket_lib::prelude::*;
-use bracket_lib::pathfinding;
 use specs::prelude::*;
 use super::{Viewshed, Monster};
-use bracket_lib::terminal::console;
 use crate::combat::WantsToMelee;
 use crate::map::{Map, Position};
-use crate::{Name, RunState};
 
 pub struct MonsterAI {}
 

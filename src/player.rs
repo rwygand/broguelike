@@ -2,10 +2,14 @@ use specs::prelude::*;
 use specs_derive::*;
 use std::cmp::{max, min};
 use bracket_lib::prelude::*;
-use crate::map::*;
-use crate::{RunState, State};
+use crate::map::{Map, Position};
 use crate::visibility::Viewshed;
-use crate::combat::*;
+use crate::combat::{
+    CombatStats,
+    WantsToMelee
+};
+use crate::State;
+use crate::states::RunState;
 
 #[derive(Component, Debug)]
 pub struct Player {}
