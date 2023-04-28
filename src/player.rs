@@ -8,7 +8,7 @@ use crate::combat::{
     CombatStats,
     WantsToMelee
 };
-use crate::State;
+use crate::{items, State};
 use crate::states::RunState;
 
 #[derive(Component, Debug)]
@@ -81,6 +81,10 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
 
             VirtualKeyCode::Numpad1 |
             VirtualKeyCode::Z => try_move_player(-1, 1, &mut gs.ecs),
+
+            VirtualKeyCode::G => items::get_item(&mut gs.ecs),
+            VirtualKeyCode::I => return RunState::ShowInventory,
+            VirtualKeyCode::F => return RunState::ShowDropItem,
 
             _ => { return RunState::AwaitingInput }
         },

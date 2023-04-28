@@ -5,9 +5,9 @@ use specs::prelude::*;
 use specs_derive::Component;
 pub use indexing_system::MapIndexingSystem;
 
-const MAPWIDTH : usize = 80;
-const MAPHEIGHT : usize = 50;
-const MAPCOUNT : usize = MAPHEIGHT * MAPWIDTH;
+pub const MAPWIDTH : i32 = 80;
+pub const MAPHEIGHT : i32 = 43;
+pub const MAPCOUNT : i32 = MAPHEIGHT * MAPWIDTH;
 
 #[derive(Component, Debug, Default)]
 pub struct Position {
@@ -84,12 +84,12 @@ impl Map {
             depth,
             width,
             height,
-            tiles: vec![TileType::Wall; MAPCOUNT],
+            tiles: vec![TileType::Wall; MAPCOUNT as usize],
             rooms: Vec::new(),
-            revealed_tiles: vec![false; MAPCOUNT],
-            visible_tiles: vec![false; MAPCOUNT],
-            blocked : vec![false; MAPCOUNT],
-            tile_content : vec![Vec::new(); MAPCOUNT],
+            revealed_tiles: vec![false; MAPCOUNT as usize],
+            visible_tiles: vec![false; MAPCOUNT as usize],
+            blocked : vec![false; MAPCOUNT as usize],
+            tile_content : vec![Vec::new(); MAPCOUNT as usize],
         }
     }
 
@@ -155,8 +155,8 @@ impl Map {
         for _ in 0..MAX_ROOMS {
             let w = rng.range(MIN_SIZE, MAX_SIZE);
             let h = rng.range(MIN_SIZE, MAX_SIZE);
-            let x = rng.roll_dice(1, 80 - w - 1) - 1;
-            let y = rng.roll_dice(1, 50 - h - 1) - 1;
+            let x = rng.roll_dice(1, MAPWIDTH - w - 1) - 1;
+            let y = rng.roll_dice(1, MAPHEIGHT - h - 1) - 1;
             let new_room = Rect::with_size(x, y, w, h);
             let mut ok = true;
             for other_room in self.rooms.iter() {

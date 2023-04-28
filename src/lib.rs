@@ -7,10 +7,14 @@ pub mod combat;
 pub mod render;
 pub mod gui;
 pub mod gamelog;
+pub mod spawner;
+pub mod items;
+pub mod inventory_system;
 
 use specs::prelude::*;
 use specs_derive::*;
 use crate::combat::{DamageSystem, MeleeCombatSystem};
+use crate::inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};
 use crate::map::MapIndexingSystem;
 use crate::monster::MonsterAI;
 use crate::visibility::system::VisibilitySystem;
@@ -40,6 +44,12 @@ impl State {
         melee.run_now(&self.ecs);
         let mut damage = DamageSystem{};
         damage.run_now(&self.ecs);
+        let mut pickup = ItemCollectionSystem{};
+        pickup.run_now(&self.ecs);
+        let mut potions = PotionUseSystem{};
+        potions.run_now(&self.ecs);
+        let mut drop_items = ItemDropSystem{};
+        drop_items.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
