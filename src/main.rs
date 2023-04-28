@@ -32,7 +32,6 @@ fn main() -> BError {
 
     let mut gs = broguelike_rltk::State {
         ecs: World::new(),
-        runstate : RunState::Running
     };
 
     gs.ecs.register::<Position>();
@@ -91,6 +90,7 @@ fn main() -> BError {
     }
 
     gs.ecs.insert(map);
+    gs.ecs.insert(RunState::PreRun);
     gs.ecs.insert(Point::new(player_point.x, player_point.y));
     gs.ecs.insert(player_entity);
 
