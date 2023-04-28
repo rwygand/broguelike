@@ -2,6 +2,7 @@ mod player;
 mod map;
 mod visibility;
 mod monster;
+mod combat;
 
 use bracket_lib::prelude::*;
 use specs::prelude::*;
@@ -11,6 +12,7 @@ use crate::player::*;
 use crate::visibility::Viewshed;
 use visibility::system::VisibilitySystem;
 use crate::monster::Monster;
+use combat::*;
 
 const WIDTH: usize = 80;
 const HEIGHT: usize = 50;
@@ -47,11 +49,15 @@ fn main() -> BError {
     gs.ecs.register::<Viewshed>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
+    gs.ecs.register::<BlocksTile>();
+    gs.ecs.register::<CombatStats>();
+    gs.ecs.register::<WantsToMelee>();
+    gs.ecs.register::<SufferDamage>();
 
     let map = Map::new_map_rooms_and_corridors(1, 80, 50);
     let player_point = map.center_of_room(0);
 
-    gs.ecs.create_entity()
+    let player_entity = gs.ecs.create_entity()
         .with(Position { x: player_point.x, y: player_point.y } )
         .with(Renderable {
             glyph: 25,
@@ -61,6 +67,7 @@ fn main() -> BError {
         .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
         .with(Player{})
         .with(Name{name: "Player".to_string() })
+        .with(CombatStats{ max_hp: 30, hp: 30, defense: 2, power: 5 })
         .build();
 
     let mut rng = RandomNumberGenerator::new();
@@ -86,11 +93,14 @@ fn main() -> BError {
             .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
             .with(Monster{})
             .with(Name{ name: format!("{} #{}", &name, i) })
+            .with(BlocksTile{})
+            .with(CombatStats{ max_hp: 16, hp: 16, defense: 1, power: 4 })
             .build();
     }
 
     gs.ecs.insert(map);
     gs.ecs.insert(Point::new(player_point.x, player_point.y));
+    gs.ecs.insert(player_entity);
 
     main_loop(context, gs)
 }
@@ -107,6 +117,9 @@ pub struct Name {
     pub name: String,
 }
 
+#[derive(Component, Debug)]
+pub struct BlocksTile {}
+
 pub struct State {
     ecs: World,
     runstate: RunState,
@@ -121,6 +134,15 @@ impl State {
         vis.run_now(&self.ecs);
         let mut mob = monster::MonsterAI{};
         mob.run_now(&self.ecs);
+        let mut mapindex = map::MapIndexingSystem{};
+        mapindex.run_now(&self.ecs);
+        let mut melee = MeleeCombatSystem{};
+        melee.run_now(&self.ecs);
+        let mut damage = DamageSystem{};
+        damage.run_now(&self.ecs);
+
+        combat::delete_the_dead(&mut self.ecs);
+
         self.ecs.maintain();
     }
 }
