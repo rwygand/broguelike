@@ -15,21 +15,38 @@ pub enum TileType {
 }
 
 pub struct Map {
-    pub tiles: Vec<TileType>,
-    pub rooms: Vec<Rect>,
+    pub depth: i32,
     pub width: i32,
     pub height: i32,
-    pub depth: i32,
+    pub tiles: Vec<TileType>,
+    pub rooms: Vec<Rect>,
+    pub revealed_tiles : Vec<bool>,
+    pub visible_tiles : Vec<bool>,
+}
+
+impl BaseMap for Map {
+    fn is_opaque(&self, idx:usize) -> bool {
+        self.tiles[idx as usize] == TileType::Wall
+    }
+}
+
+impl Algorithm2D for Map {
+    fn dimensions(&self) -> Point {
+        Point::new(self.width, self.height)
+    }
 }
 
 impl Map {
     fn new(depth: i32, width: i32, height: i32) -> Self {
+        let vec_size = width as usize * height as usize;
         Self {
-            tiles: vec![TileType::Wall; width as usize * height as usize],
-            rooms: Vec::new(),
             depth,
             width,
             height,
+            tiles: vec![TileType::Wall; vec_size],
+            rooms: Vec::new(),
+            revealed_tiles: vec![false; vec_size],
+            visible_tiles: vec![false; vec_size]
         }
     }
 

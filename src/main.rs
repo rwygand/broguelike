@@ -1,11 +1,14 @@
 mod player;
 mod map;
+mod visibility;
 
 use bracket_lib::prelude::*;
 use specs::prelude::*;
 use specs_derive::Component;
 use crate::map::{Map, Position, TileType};
 use crate::player::*;
+use crate::visibility::Viewshed;
+use visibility::system::VisibilitySystem;
 
 const WIDTH: i32 = 80;
 const HEIGHT: i32 = 50;
@@ -30,20 +33,7 @@ fn main() -> BError {
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Player>();
-
-
-
-    for i in 0..10 {
-        gs.ecs
-            .create_entity()
-            .with(Position { x: i * 7, y: 20 })
-            .with(Renderable {
-                glyph: 7*49+18,
-                fg: RGB::named(RED),
-                bg: RGB::named(BLACK),
-            })
-            .build();
-    }
+    gs.ecs.register::<Viewshed>();
 
     let map = Map::new_map_rooms_and_corridors(1, 80, 50);
     let player_point = map.center_of_room(0);
@@ -55,6 +45,7 @@ fn main() -> BError {
             fg: RGB::named(YELLOW),
             bg: RGB::named(BLACK)
         })
+        .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
         .with(Player{})
         .build();
 
@@ -75,16 +66,25 @@ pub struct State {
     ecs: World
 }
 
+impl State {
+    fn run_systems(&mut self) {
+        let mut vis = VisibilitySystem{};
+        vis.run_now(&self.ecs);
+        self.ecs.maintain();
+    }
+}
+
 impl GameState for State {
     fn tick(&mut self, ctx : &mut BTerm) {
-        player_input(self, ctx);
         ctx.cls();
+
+        player_input(self, ctx);
+        self.run_systems();
+
+        draw_map(&self.ecs, ctx);
 
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
-        let map = self.ecs.fetch::<Map>();
-
-        draw_map(&map, ctx);
 
         for (pos, render) in (&positions, &renderables).join() {
             ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
@@ -92,45 +92,29 @@ impl GameState for State {
     }
 }
 
+pub fn draw_map(ecs: &World, ctx : &mut BTerm) {
+    let map = ecs.fetch::<Map>();
 
-pub fn player_input(gs: &mut State, ctx: &mut BTerm) {
-    // Player movement
-    match ctx.key {
-        None => {} // Nothing happened
-        Some(key) => match key {
-            VirtualKeyCode::Left |
-            VirtualKeyCode::Numpad4 |
-            VirtualKeyCode::A => try_move_player(-1, 0, &mut gs.ecs),
-
-            VirtualKeyCode::Right |
-            VirtualKeyCode::Numpad6 |
-            VirtualKeyCode::D => try_move_player(1, 0, &mut gs.ecs),
-
-            VirtualKeyCode::Up |
-            VirtualKeyCode::Numpad8 |
-            VirtualKeyCode::W => try_move_player(0, -1, &mut gs.ecs),
-
-            VirtualKeyCode::Down |
-            VirtualKeyCode::Numpad2 |
-            VirtualKeyCode::X => try_move_player(0, 1, &mut gs.ecs),
-
-            _ => {}
-        },
-    }
-}
-
-fn draw_map(map: &Map, ctx : &mut BTerm) {
     let mut y = 0;
     let mut x = 0;
-    for tile in map.tiles.iter() {
+    for (idx,tile) in map.tiles.iter().enumerate() {
         // Render a tile depending upon the tile type
-        match tile {
-            TileType::Floor => {
-                ctx.set(x, y, RGB::from_f32(0.5, 0.5, 0.5), RGB::from_f32(0., 0., 0.), 0);
+
+        if map.revealed_tiles[idx] {
+            let glyph;
+            let mut fg;
+            match tile {
+                TileType::Floor => {
+                    glyph = 0;
+                    fg = RGB::from_f32(0.0, 0.5, 0.5);
+                }
+                TileType::Wall => {
+                    glyph = 16;
+                    fg = RGB::from_f32(0., 1.0, 0.);
+                }
             }
-            TileType::Wall => {
-                ctx.set(x, y, RGB::from_f32(0.2, 0.1, 0.05), RGB::from_f32(0., 0., 0.), 16);
-            }
+            if !map.visible_tiles[idx] { fg = fg.to_greyscale() }
+            ctx.set(x, y, fg, RGB::from_f32(0., 0., 0.), glyph);
         }
 
         // Move the coordinates
