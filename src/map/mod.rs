@@ -5,6 +5,10 @@ use specs::prelude::*;
 use specs_derive::Component;
 pub use indexing_system::MapIndexingSystem;
 
+const MAPWIDTH : usize = 80;
+const MAPHEIGHT : usize = 50;
+const MAPCOUNT : usize = MAPHEIGHT * MAPWIDTH;
+
 #[derive(Component, Debug, Default)]
 pub struct Position {
     pub x: i32,
@@ -76,17 +80,16 @@ impl Algorithm2D for Map {
 
 impl Map {
     fn new(depth: i32, width: i32, height: i32) -> Self {
-        let sz = width as usize * height as usize;
         Self {
             depth,
             width,
             height,
-            tiles: vec![TileType::Wall; sz],
+            tiles: vec![TileType::Wall; MAPCOUNT],
             rooms: Vec::new(),
-            revealed_tiles: vec![false; sz],
-            visible_tiles: vec![false; sz],
-            blocked : vec![false; sz],
-            tile_content : vec![Vec::new(); sz],
+            revealed_tiles: vec![false; MAPCOUNT],
+            visible_tiles: vec![false; MAPCOUNT],
+            blocked : vec![false; MAPCOUNT],
+            tile_content : vec![Vec::new(); MAPCOUNT],
         }
     }
 

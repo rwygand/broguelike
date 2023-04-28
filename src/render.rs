@@ -23,11 +23,11 @@ pub fn draw_map(ecs: &World, ctx : &mut BTerm) {
             let mut fg;
             match tile {
                 TileType::Floor => {
-                    glyph = 0;
+                    glyph = to_cp437(' ') ;
                     fg = RGB::from_f32(0.0, 0.5, 0.5);
                 }
                 TileType::Wall => {
-                    glyph = 16;
+                    glyph = to_cp437('#');
                     fg = RGB::from_f32(0., 1.0, 0.);
                 }
             }

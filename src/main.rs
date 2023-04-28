@@ -1,36 +1,39 @@
 use bracket_lib::prelude::*;
 use specs::prelude::*;
-use broguelike_rltk::map::{Map, Position};
-use broguelike_rltk::monster::Monster;
-use broguelike_rltk::player::Player;
-use broguelike_rltk::{BlocksTile, Name};
-use broguelike_rltk::combat::{CombatStats, SufferDamage, WantsToMelee};
-use broguelike_rltk::render::Renderable;
-use broguelike_rltk::states::RunState;
-use broguelike_rltk::visibility::Viewshed;
+use broguelike::map::{Map, Position};
+use broguelike::monster::Monster;
+use broguelike::player::Player;
+use broguelike::{BlocksTile, Name};
+use broguelike::combat::{CombatStats, SufferDamage, WantsToMelee};
+use broguelike::render::Renderable;
+use broguelike::states::RunState;
+use broguelike::visibility::Viewshed;
+use broguelike::gamelog::GameLog;
 
-const WIDTH: usize = 80;
-const HEIGHT: usize = 50;
-
-embedded_resource!(TILE_FONT, "../resources/monochrome-transparent_packed.png");
+//embedded_resource!(TILE_FONT, "../resources/monochrome-transparent_packed.png");
+//embedded_resource!(TEXT_FONT, "../resources/terminal_10x16.png");
 
 pub const SPRITE_SIZE: usize = 16;
 pub const SPRITE_SHEET_COLS: usize = 49;
 pub const SPRITE_SHEET_ROWS: usize = 22;
 
 fn main() -> BError {
-    link_resource!(TILE_FONT, "resources/monochrome-transparent_packed.png");
+    //link_resource!(TILE_FONT, "resources/monochrome-transparent_packed.png");
+    //link_resource!(TEXT_FONT, "resources/terminal_10x16.png");
 
-    let context = BTermBuilder::new()
-        .with_dimensions(WIDTH as u32, HEIGHT as u32)
+    let mut context = BTermBuilder::simple80x50()
+        //.with_dimensions(WIDTH as u32, HEIGHT as u32)
         .with_tile_dimensions(16u32, 16u32)
         .with_title("Broguelike")
-        .with_font("monochrome-transparent_packed.png", 16u32, 16u32)
-        //.with_simple_console(WIDTH as u32, HEIGHT as u32, "monochrome-transparent_packed.png")
-        .with_sparse_console_no_bg(WIDTH as u32, HEIGHT as u32, "monochrome-transparent_packed.png")
+        .with_fps_cap(30.)
+        //.with_font("monochrome-transparent_packed.png", 16u32, 16u32)
+        //.with_font("terminal_10x16.png", 16u32, 16u32)
+        //.with_simple_console(WIDTH, HEIGHT, "monochrome-transparent_packed.png")
+        //.with_sparse_console_no_bg(WIDTH, HEIGHT,"terminal_10x16.png")
         .build()?;
+    context.with_post_scanlines(true);
 
-    let mut gs = broguelike_rltk::State {
+    let mut gs = broguelike::State {
         ecs: World::new(),
     };
 
@@ -51,7 +54,7 @@ fn main() -> BError {
     let player_entity = gs.ecs.create_entity()
         .with(Position { x: player_point.x, y: player_point.y } )
         .with(Renderable {
-            glyph: 25,
+            glyph: to_cp437('@'),
             fg: RGB::named(YELLOW),
             bg: RGB::named(BLACK)
         })
@@ -70,8 +73,8 @@ fn main() -> BError {
         let name : String;
         let roll = rng.roll_dice(1, 2);
         match roll {
-            1 => { glyph = sprite_at(2, 29); name = "Goblin".to_string() }
-            _ => { glyph = sprite_at(2, 26); name = "Orc".to_string() }
+            1 => { glyph = to_cp437('g'); name = "Goblin".to_string() }
+            _ => { glyph = to_cp437('o'); name = "Orc".to_string() }
         }
 
         gs.ecs.create_entity()
@@ -93,6 +96,7 @@ fn main() -> BError {
     gs.ecs.insert(RunState::PreRun);
     gs.ecs.insert(Point::new(player_point.x, player_point.y));
     gs.ecs.insert(player_entity);
+    gs.ecs.insert(GameLog{ entries : vec!["Welcome to Rusty Roguelike".to_string()] });
 
     main_loop(context, gs)
 }

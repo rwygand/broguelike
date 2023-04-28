@@ -2,7 +2,7 @@ use bracket_lib::prelude::*;
 use specs::prelude::*;
 use crate::map::{Map, Position};
 use crate::player::player_input;
-use crate::{render::Renderable, render, State};
+use crate::{render::Renderable, render, State, gui};
 use crate::combat::delete_the_dead;
 
 #[derive(PartialEq, Copy, Clone)]
@@ -51,5 +51,7 @@ impl GameState for State {
             let idx = map.xy_idx(pos.x, pos.y);
             if map.visible_tiles[idx] { ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph) }
         }
+
+        gui::draw_ui(&self.ecs, ctx);
     }
 }

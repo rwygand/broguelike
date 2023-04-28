@@ -5,6 +5,8 @@ pub mod visibility;
 pub mod monster;
 pub mod combat;
 pub mod render;
+pub mod gui;
+pub mod gamelog;
 
 use specs::prelude::*;
 use specs_derive::*;
