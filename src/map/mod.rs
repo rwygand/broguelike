@@ -8,6 +8,11 @@ pub struct Position {
     pub y: i32,
 }
 
+impl Position {
+    pub fn from_point(p: Point) -> Position {
+        Position { x: p.x, y: p.y }
+    }
+}
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum TileType {

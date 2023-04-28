@@ -3,7 +3,7 @@ use specs_derive::*;
 use std::cmp::{max, min};
 use bracket_lib::prelude::*;
 use crate::map::*;
-use crate::State;
+use crate::{RunState, State};
 use crate::visibility::Viewshed;
 
 #[derive(Component, Debug)]
@@ -20,34 +20,39 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         if !map.is_wall(destination_idx) {
             pos.x = min(79 , max(0, pos.x + delta_x));
             pos.y = min(49, max(0, pos.y + delta_y));
+
+            let mut ppos = ecs.write_resource::<Point>();
+            ppos.x = pos.x;
+            ppos.y = pos.y;
         }
 
         viewshed.dirty = true;
     }
 }
 
-pub fn player_input(gs: &mut State, ctx: &mut BTerm) {
+pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
     // Player movement
     match ctx.key {
-        None => {} // Nothing happened
+        None => { return RunState::Paused } // Nothing happened
         Some(key) => match key {
             VirtualKeyCode::Left |
             VirtualKeyCode::Numpad4 |
-            VirtualKeyCode::A => try_move_player(-1, 0, &mut gs.ecs),
+            VirtualKeyCode::H => try_move_player(-1, 0, &mut gs.ecs),
 
             VirtualKeyCode::Right |
             VirtualKeyCode::Numpad6 |
-            VirtualKeyCode::D => try_move_player(1, 0, &mut gs.ecs),
+            VirtualKeyCode::L => try_move_player(1, 0, &mut gs.ecs),
 
             VirtualKeyCode::Up |
             VirtualKeyCode::Numpad8 |
-            VirtualKeyCode::W => try_move_player(0, -1, &mut gs.ecs),
+            VirtualKeyCode::K => try_move_player(0, -1, &mut gs.ecs),
 
             VirtualKeyCode::Down |
             VirtualKeyCode::Numpad2 |
-            VirtualKeyCode::X => try_move_player(0, 1, &mut gs.ecs),
+            VirtualKeyCode::J => try_move_player(0, 1, &mut gs.ecs),
 
-            _ => {}
+            _ => { return RunState::Paused }
         },
     }
+    RunState::Running
 }
