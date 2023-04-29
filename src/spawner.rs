@@ -7,10 +7,10 @@ use crate::components::*;
 use crate::MAPWIDTH;
 
 /// Spawns the player and returns his/her entity object.
-pub fn player(ecs : &mut World, pos: Point) -> Entity {
+pub fn player(ecs : &mut World, x: i32, y: i32) -> Entity {
     ecs
         .create_entity()
-        .with(Position::from_point(pos))
+        .with(Position { x, y })
         .with(Renderable {
             glyph: to_cp437('@'),
             fg: RGB::named(YELLOW),
