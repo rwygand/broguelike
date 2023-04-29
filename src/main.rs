@@ -31,6 +31,7 @@ pub mod saveload_system;
 mod random_tables;
 mod particle_system;
 mod hunger_system;
+mod rex_assets;
 
 
 #[derive(PartialEq, Copy, Clone)]
@@ -430,6 +431,7 @@ fn main() -> BError {
     gs.ecs.register::<MagicMapper>();
 
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
+    gs.ecs.insert(rex_assets::RexAssets::new());
 
     let map : Map = Map::new_map_rooms_and_corridors(1);
     let player_pos = map.rooms[0].center();
