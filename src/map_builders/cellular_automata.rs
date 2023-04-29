@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use bracket_lib::prelude::*;
 use specs::prelude::*;
 use crate::{Map, Position, SHOW_MAPGEN_VISUALIZER, spawner, TileType};
+use crate::map_builders::common::*;
 use crate::map_builders::MapBuilder;
 
 pub struct CellularAutomataBuilder {
@@ -13,16 +14,6 @@ pub struct CellularAutomataBuilder {
 }
 
 impl MapBuilder for CellularAutomataBuilder {
-    fn build_map(&mut self)  {
-        self.build();
-    }
-
-    fn spawn_entities(&mut self, ecs : &mut World) {
-        for area in self.noise_areas.iter() {
-            spawner::spawn_region(ecs, area.1, self.depth);
-        }
-    }
-
     fn get_map(&self) -> Map {
         self.map.clone()
     }
@@ -33,6 +24,16 @@ impl MapBuilder for CellularAutomataBuilder {
 
     fn get_snapshot_history(&self) -> Vec<Map> {
         self.history.clone()
+    }
+
+    fn build_map(&mut self)  {
+        self.build();
+    }
+
+    fn spawn_entities(&mut self, ecs : &mut World) {
+        for area in self.noise_areas.iter() {
+            spawner::spawn_region(ecs, area.1, self.depth);
+        }
     }
 
     fn take_snapshot(&mut self) {
@@ -112,50 +113,14 @@ impl CellularAutomataBuilder {
         self.take_snapshot();
 
         // Find all tiles we can reach from the starting point
-        let map_starts : Vec<usize> = vec![start_idx];
-        let dijkstra_map = DijkstraMap::new(self.map.width as usize, self.map.height as usize, &map_starts , &self.map, 200.0);
-        let mut exit_tile = (0, 0.0f32);
-        for (i, tile) in self.map.tiles.iter_mut().enumerate() {
-            if *tile == TileType::Floor {
-                let distance_to_start = dijkstra_map.map[i];
-                // We can't get to this tile - so we'll make it a wall
-                if distance_to_start == std::f32::MAX {
-                    *tile = TileType::Wall;
-                } else {
-                    // If it is further away than our current exit candidate, move the exit
-                    if distance_to_start > exit_tile.1 {
-                        exit_tile.0 = i;
-                        exit_tile.1 = distance_to_start;
-                    }
-                }
-            }
-        }
+        let exit_tile = remove_unreachable_areas_returning_most_distant(&mut self.map, start_idx);
         self.take_snapshot();
 
         // Place the stairs
-        self.map.tiles[exit_tile.0] = TileType::StairsDown;
+        self.map.tiles[exit_tile] = TileType::StairsDown;
         self.take_snapshot();
 
         // Now we build a noise map for use in spawning entities later
-        let mut noise = FastNoise::seeded(rng.roll_dice(1, 65536) as u64);
-        noise.set_noise_type(NoiseType::Cellular);
-        noise.set_frequency(0.08);
-        noise.set_cellular_distance_function(CellularDistanceFunction::Manhattan);
-
-        for y in 1 .. self.map.height-1 {
-            for x in 1 .. self.map.width-1 {
-                let idx = self.map.xy_idx(x, y);
-                if self.map.tiles[idx] == TileType::Floor {
-                    let cell_value_f = noise.get_noise(x as f32, y as f32) * 10240.0;
-                    let cell_value = cell_value_f as i32;
-
-                    if self.noise_areas.contains_key(&cell_value) {
-                        self.noise_areas.get_mut(&cell_value).unwrap().push(idx);
-                    } else {
-                        self.noise_areas.insert(cell_value, vec![idx]);
-                    }
-                }
-            }
-        }
+        self.noise_areas = generate_voronoi_spawn_regions(&self.map, &mut rng);
     }
 }
