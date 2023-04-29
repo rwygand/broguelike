@@ -103,7 +103,7 @@ impl Map {
             let h = rng.range(MIN_SIZE, MAX_SIZE);
             let x = rng.roll_dice(1, map.width - w - 1) - 1;
             let y = rng.roll_dice(1, map.height - h - 1) - 1;
-            let new_room = Rect::new(x, y, w, h);
+            let new_room = Rect::with_size(x, y, w, h);
             let mut ok = true;
             for other_room in map.rooms.iter() {
                 if new_room.intersect(other_room) { ok = false }
@@ -112,14 +112,14 @@ impl Map {
                 map.apply_room_to_map(&new_room);
 
                 if !map.rooms.is_empty() {
-                    let (new_x, new_y) = new_room.center();
-                    let (prev_x, prev_y) = map.rooms[map.rooms.len()-1].center();
+                    let new_pos = new_room.center();
+                    let prev_pos = map.rooms[map.rooms.len()-1].center();
                     if rng.range(0,2) == 1 {
-                        map.apply_horizontal_tunnel(prev_x, new_x, prev_y);
-                        map.apply_vertical_tunnel(prev_y, new_y, new_x);
+                        map.apply_horizontal_tunnel(prev_pos.x, new_pos.x, prev_pos.y);
+                        map.apply_vertical_tunnel(prev_pos.y, new_pos.y, new_pos.x);
                     } else {
-                        map.apply_vertical_tunnel(prev_y, new_y, prev_x);
-                        map.apply_horizontal_tunnel(prev_x, new_x, new_y);
+                        map.apply_vertical_tunnel(prev_pos.y, new_pos.y, prev_pos.x);
+                        map.apply_horizontal_tunnel(prev_pos.x, new_pos.x, new_pos.y);
                     }
                 }
 

@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use specs::prelude::*;
 use specs::saveload::{SimpleMarker, SimpleMarkerAllocator, SerializeComponents, DeserializeComponents, MarkedBuilder};
 use specs::error::NoError;

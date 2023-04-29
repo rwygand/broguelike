@@ -9,8 +9,6 @@ mod map;
 pub use map::*;
 mod player;
 use player::*;
-mod rect;
-pub use rect::Rect;
 mod visibility_system;
 use visibility_system::VisibilitySystem;
 mod monster_ai_system;
@@ -196,7 +194,6 @@ impl GameState for State {
 }
 
 fn main() -> BError {
-    use bracket_lib::terminal::BTermBuilder;
     let mut context = BTermBuilder::simple80x50()
         .with_tile_dimensions(16, 16)
         .with_title("Broguelike")
@@ -232,9 +229,9 @@ fn main() -> BError {
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     let map : Map = Map::new_map_rooms_and_corridors();
-    let (player_x, player_y) = map.rooms[0].center();
+    let player_pos = map.rooms[0].center();
 
-    let player_entity = spawner::player(&mut gs.ecs, player_x, player_y);
+    let player_entity = spawner::player(&mut gs.ecs, player_pos);
 
     gs.ecs.insert(RandomNumberGenerator::new());
     for room in map.rooms.iter().skip(1) {
@@ -242,7 +239,7 @@ fn main() -> BError {
     }
 
     gs.ecs.insert(map);
-    gs.ecs.insert(Point::new(player_x, player_y));
+    gs.ecs.insert(player_pos);
     gs.ecs.insert(player_entity);
     gs.ecs.insert(RunState::MainMenu{ menu_selection: gui::MainMenuSelection::NewGame });
     gs.ecs.insert(gamelog::GameLog{ entries : vec!["Welcome to Rusty Roguelike".to_string()] });

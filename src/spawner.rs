@@ -5,10 +5,10 @@ use super::{CombatStats, Player, Renderable, Name, Position, Viewshed, Monster, 
 use specs::saveload::{MarkedBuilder, SimpleMarker};
 
 /// Spawns the player and returns his/her entity object.
-pub fn player(ecs : &mut World, player_x : i32, player_y : i32) -> Entity {
+pub fn player(ecs : &mut World, pos: Point) -> Entity {
     ecs
         .create_entity()
-        .with(Position { x: player_x, y: player_y })
+        .with(Position::from_point(pos))
         .with(Renderable {
             glyph: to_cp437('@'),
             fg: RGB::named(YELLOW),
