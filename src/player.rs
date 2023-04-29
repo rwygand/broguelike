@@ -1,7 +1,7 @@
 use bracket_lib::prelude::*;
 use specs::prelude::*;
 use std::cmp::{max, min};
-use crate::{Monster, TileType};
+use crate::{HungerClock, HungerState, Monster, TileType};
 use super::{Position, Player, Viewshed, State, Map, RunState, CombatStats, WantsToMelee, Item,
     gamelog::GameLog, WantsToPickupItem};
 
@@ -152,6 +152,16 @@ fn skip_turn(ecs: &mut World) -> RunState {
                 None => {}
                 Some(_) => { can_heal = false; }
             }
+        }
+    }
+
+    let hunger_clocks = ecs.read_storage::<HungerClock>();
+    let hc = hunger_clocks.get(*player_entity);
+    if let Some(hc) = hc {
+        match hc.state {
+            HungerState::Hungry => can_heal = false,
+            HungerState::Starving => can_heal = false,
+            _ => {}
         }
     }
 
