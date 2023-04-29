@@ -1,6 +1,6 @@
 use bracket_lib::prelude::*;
 use specs::prelude::*;
-use crate::{Equippable, Equipped, HungerClock, HungerState, ProvidesFood, WantsToRemoveItem};
+use crate::{Equippable, Equipped, HungerClock, HungerState, MagicMapper, ProvidesFood, RunState, WantsToRemoveItem};
 use crate::particle_system::ParticleBuilder;
 use super::{WantsToPickupItem, Name, InBackpack, Position, gamelog::GameLog, WantsToUseItem,
     Consumable, ProvidesHealing, CombatStats, WantsToDropItem, InflictsDamage, Map, SufferDamage,
@@ -40,7 +40,7 @@ impl<'a> System<'a> for ItemUseSystem {
     #[allow(clippy::type_complexity)]
     type SystemData = ( ReadExpect<'a, Entity>,
                         WriteExpect<'a, GameLog>,
-                        ReadExpect<'a, Map>,
+                        WriteExpect<'a, Map>,
                         Entities<'a>,
                         WriteStorage<'a, WantsToUseItem>,
                         ReadStorage<'a, Name>,
@@ -57,14 +57,17 @@ impl<'a> System<'a> for ItemUseSystem {
                         WriteExpect<'a, ParticleBuilder>,
                         ReadStorage<'a, Position>,
                         ReadStorage<'a, ProvidesFood>,
-                        WriteStorage<'a, HungerClock>
+                        WriteStorage<'a, HungerClock>,
+                        ReadStorage<'a, MagicMapper>,
+                        WriteExpect<'a, RunState>
     );
 
+    #[allow(clippy::cognitive_complexity)]
     fn run(&mut self, data : Self::SystemData) {
         let (player_entity, mut gamelog, map, entities, mut wants_use, names,
             consumables, healing, inflict_damage, mut combat_stats, mut suffer_damage,
             aoe, mut confused, equippable, mut equipped, mut backpack, mut particle_builder, positions,
-            provides_food, mut hunger_clocks) = data;
+            provides_food, mut hunger_clocks, magic_mapper, mut runstate) = data;
 
         for (entity, useitem) in (&entities, &wants_use).join() {
             let mut used_item = true;
@@ -99,22 +102,6 @@ impl<'a> System<'a> for ItemUseSystem {
                 }
             }
 
-            // It it is edible, eat it!
-            let item_edible = provides_food.get(useitem.item);
-            match item_edible {
-                None => {}
-                Some(_) => {
-                    used_item = true;
-                    let target = targets[0];
-                    let hc = hunger_clocks.get_mut(target);
-                    if let Some(hc) = hc {
-                        hc.state = HungerState::WellFed;
-                        hc.duration = 20;
-                        gamelog.entries.push(format!("You eat the {}.", names.get(useitem.item).unwrap().name));
-                    }
-                }
-            }
-
             // If it is equippable, then we want to equip it - and unequip whatever else was in that slot
             let item_equippable = equippable.get(useitem.item);
             match item_equippable {
@@ -144,6 +131,33 @@ impl<'a> System<'a> for ItemUseSystem {
                     if target == *player_entity {
                         gamelog.entries.push(format!("You equip {}.", names.get(useitem.item).unwrap().name));
                     }
+                }
+            }
+
+            // It it is edible, eat it!
+            let item_edible = provides_food.get(useitem.item);
+            match item_edible {
+                None => {}
+                Some(_) => {
+                    used_item = true;
+                    let target = targets[0];
+                    let hc = hunger_clocks.get_mut(target);
+                    if let Some(hc) = hc {
+                        hc.state = HungerState::WellFed;
+                        hc.duration = 20;
+                        gamelog.entries.push(format!("You eat the {}.", names.get(useitem.item).unwrap().name));
+                    }
+                }
+            }
+
+            // If its a magic mapper...
+            let is_mapper = magic_mapper.get(useitem.item);
+            match is_mapper {
+                None => {}
+                Some(_) => {
+                    used_item = true;
+                    gamelog.entries.push("The map is revealed to you!".to_string());
+                    *runstate = RunState::MagicMapReveal{ row : 0};
                 }
             }
 
@@ -182,7 +196,6 @@ impl<'a> System<'a> for ItemUseSystem {
                         if entity == *player_entity {
                             let mob_name = names.get(*mob).unwrap();
                             let item_name = names.get(useitem.item).unwrap();
-                            
                             gamelog.entries.push(format!("You use {} on {}, inflicting {} hp.", item_name.name, mob_name.name, damage.damage));
 
                             let pos = positions.get(*mob);
@@ -209,14 +222,12 @@ impl<'a> System<'a> for ItemUseSystem {
                             if entity == *player_entity {
                                 let mob_name = names.get(*mob).unwrap();
                                 let item_name = names.get(useitem.item).unwrap();
-
                                 gamelog.entries.push(format!("You use {} on {}, confusing them.", item_name.name, mob_name.name));
 
                                 let pos = positions.get(*mob);
                                 if let Some(pos) = pos {
                                     particle_builder.request(pos.x, pos.y, RGB::named(MAGENTA), RGB::named(BLACK), to_cp437('?'), 200.0);
                                 }
-
                             }
                         }
                     }

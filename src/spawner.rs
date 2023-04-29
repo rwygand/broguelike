@@ -41,6 +41,7 @@ fn room_table(map_depth: i32) -> RandomTable {
         .add("Longsword", map_depth - 1)
         .add("Tower Shield", map_depth - 1)
         .add("Rations", 10)
+        .add("Magic Mapping Scroll", 2)
 }
 
 #[allow(clippy::map_entry)]
@@ -88,6 +89,7 @@ pub fn spawn_room(ecs: &mut World, room : &Rect, map_depth: i32) {
             "Longsword" => longsword(ecs, x, y),
             "Tower Shield" => tower_shield(ecs, x, y),
             "Rations" => rations(ecs, x, y),
+            "Magic Mapping Scroll" => magic_mapping_scroll(ecs, x, y),
             _ => {}
         }
 
@@ -267,6 +269,23 @@ fn rations(ecs: &mut World, x: i32, y: i32) {
         .with(Name{ name : "Rations".to_string() })
         .with(Item{})
         .with(ProvidesFood{})
+        .with(Consumable{})
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
+fn magic_mapping_scroll(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position{ x, y })
+        .with(Renderable{
+            glyph: to_cp437(')'),
+            fg: RGB::named(CYAN3),
+            bg: RGB::named(BLACK),
+            render_order: 2
+        })
+        .with(Name{ name : "Scroll of Magic Mapping".to_string() })
+        .with(Item{})
+        .with(MagicMapper{})
         .with(Consumable{})
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
