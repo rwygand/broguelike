@@ -1,6 +1,7 @@
 use bracket_lib::prelude::*;
 use super::{Rect};
 use std::cmp::{max, min};
+use std::collections::HashSet;
 use specs::prelude::*;
 use serde::{Serialize, Deserialize};
 
@@ -22,6 +23,7 @@ pub struct Map {
     pub visible_tiles : Vec<bool>,
     pub blocked : Vec<bool>,
     pub depth : i32,
+    pub bloodstains : HashSet<usize>,
 
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
@@ -90,7 +92,8 @@ impl Map {
             visible_tiles : vec![false; MAPCOUNT],
             blocked : vec![false; MAPCOUNT],
             tile_content : vec![Vec::new(); MAPCOUNT],
-            depth: new_depth
+            depth: new_depth,
+            bloodstains: HashSet::new(),
         };
 
         const MAX_ROOMS : i32 = 30;
@@ -188,9 +191,10 @@ pub fn draw_map(ecs: &World, ctx : &mut BTerm) {
         if map.revealed_tiles[idx] {
             let glyph;
             let mut fg;
+            let mut bg = RGB::from_f32(0., 0., 0.);
             match tile {
                 TileType::Floor => {
-                    glyph = to_cp437('.');
+                    glyph = to_cp437(' ');
                     fg = RGB::from_f32(0.0, 0.5, 0.5);
                 }
                 TileType::Wall => {
@@ -202,9 +206,17 @@ pub fn draw_map(ecs: &World, ctx : &mut BTerm) {
                     fg = RGB::from_f32(0., 1.0, 1.0);
                 }
             }
-            if !map.visible_tiles[idx] { fg = fg.to_greyscale() }
-            ctx.set(x, y, fg, RGB::from_f32(0., 0., 0.), glyph);
+            if false {
+                // I don't like Bloodstains
+                if map.bloodstains.contains(&idx) { bg = RGB::from_f32(0.75, 0., 0.); }
+            }
+            if !map.visible_tiles[idx] {
+                fg = fg.to_greyscale();
+                bg = RGB::from_f32(0., 0., 0.); // Don't show stains out of visual range
+            }
+            ctx.set(x, y, fg, bg, glyph);
         }
+
 
         // Move the coordinates
         x += 1;
