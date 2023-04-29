@@ -1,6 +1,5 @@
 use specs::prelude::*;
-use crate::combat::*;
-use crate::gamelog::GameLog;
+use super::{CombatStats, WantsToMelee, Name, SufferDamage, gamelog::GameLog};
 
 pub struct MeleeCombatSystem {}
 
@@ -12,7 +11,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
                         ReadStorage<'a, Name>,
                         ReadStorage<'a, CombatStats>,
                         WriteStorage<'a, SufferDamage>
-    );
+                      );
 
     fn run(&mut self, data : Self::SystemData) {
         let (entities, mut log, mut wants_melee, names, combat_stats, mut inflict_damage) = data;

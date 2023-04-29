@@ -1,45 +1,23 @@
-mod melee_system;
-mod damage_system;
-
 use bracket_lib::prelude::console;
 use specs::prelude::*;
-use specs_derive::*;
-use crate::Name;
+use super::{CombatStats, SufferDamage, Player, Name, gamelog::GameLog};
 
-pub use melee_system::MeleeCombatSystem;
-pub use damage_system::DamageSystem;
-use crate::gamelog::GameLog;
-use crate::player::Player;
+pub struct DamageSystem {}
 
-#[derive(Component, Debug)]
-pub struct CombatStats {
-    pub max_hp : i32,
-    pub hp : i32,
-    pub defense : i32,
-    pub power : i32
-}
+impl<'a> System<'a> for DamageSystem {
+    type SystemData = ( WriteStorage<'a, CombatStats>,
+                        WriteStorage<'a, SufferDamage> );
 
-#[derive(Component, Debug, Clone)]
-pub struct WantsToMelee {
-    pub target : Entity
-}
+    fn run(&mut self, data : Self::SystemData) {
+        let (mut stats, mut damage) = data;
 
-#[derive(Component, Debug)]
-pub struct SufferDamage {
-    pub amount : Vec<i32>
-}
-
-impl SufferDamage {
-    pub fn new_damage(store: &mut WriteStorage<SufferDamage>, victim: Entity, amount: i32) {
-        if let Some(suffering) = store.get_mut(victim) {
-            suffering.amount.push(amount);
-        } else {
-            let dmg = SufferDamage { amount : vec![amount] };
-            store.insert(victim, dmg).expect("Unable to insert damage");
+        for (mut stats, damage) in (&mut stats, &damage).join() {
+            stats.hp -= damage.amount.iter().sum::<i32>();
         }
+
+        damage.clear();
     }
 }
-
 
 pub fn delete_the_dead(ecs : &mut World) {
     let mut dead : Vec<Entity> = Vec::new();

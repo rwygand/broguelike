@@ -1,10 +1,6 @@
-use bracket_lib::prelude::*;
 use specs::prelude::*;
-use super::{Viewshed, Monster};
-use crate::combat::WantsToMelee;
-use crate::items::Confusion;
-use crate::map::{Map, Position};
-use crate::states::RunState;
+use super::{Viewshed, Monster, Map, Position, WantsToMelee, RunState, Confusion};
+use bracket_lib::prelude::*;
 
 pub struct MonsterAI {}
 

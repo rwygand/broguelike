@@ -1,9 +1,7 @@
 use specs::prelude::*;
-use crate::BlocksTile;
-use super::{Map, Position};
+use super::{Map, Position, BlocksTile};
 
 pub struct MapIndexingSystem {}
-
 
 impl<'a> System<'a> for MapIndexingSystem {
     type SystemData = ( WriteExpect<'a, Map>,
@@ -31,4 +29,3 @@ impl<'a> System<'a> for MapIndexingSystem {
         }
     }
 }
-

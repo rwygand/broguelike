@@ -1,9 +1,8 @@
-use bracket_lib::pathfinding::field_of_view;
+use bracket_lib::prelude::*;
 use specs::prelude::*;
-use crate::items::*;
-use crate::map::{Map, Position};
-use crate::{Name, gamelog::GameLog};
-use crate::combat::{CombatStats, SufferDamage};
+use super::{WantsToPickupItem, Name, InBackpack, Position, gamelog::GameLog, WantsToUseItem,
+    Consumable, ProvidesHealing, CombatStats, WantsToDropItem, InflictsDamage, Map, SufferDamage,
+    AreaOfEffect, Confusion};
 
 pub struct ItemCollectionSystem {}
 
@@ -15,7 +14,7 @@ impl<'a> System<'a> for ItemCollectionSystem {
                         WriteStorage<'a, Position>,
                         ReadStorage<'a, Name>,
                         WriteStorage<'a, InBackpack>
-    );
+                      );
 
     fn run(&mut self, data : Self::SystemData) {
         let (player_entity, mut gamelog, mut wants_pickup, mut positions, names, mut backpack) = data;
@@ -50,7 +49,7 @@ impl<'a> System<'a> for ItemUseSystem {
                         WriteStorage<'a, SufferDamage>,
                         ReadStorage<'a, AreaOfEffect>,
                         WriteStorage<'a, Confusion>
-    );
+                      );
 
     fn run(&mut self, data : Self::SystemData) {
         let (player_entity, mut gamelog, map, entities, mut wants_use, names,
@@ -177,7 +176,7 @@ impl<'a> System<'a> for ItemDropSystem {
                         ReadStorage<'a, Name>,
                         WriteStorage<'a, Position>,
                         WriteStorage<'a, InBackpack>
-    );
+                      );
 
     fn run(&mut self, data : Self::SystemData) {
         let (player_entity, mut gamelog, entities, mut wants_drop, names, mut positions, mut backpack) = data;

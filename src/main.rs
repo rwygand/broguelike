@@ -1,43 +1,210 @@
+extern crate serde;
 use bracket_lib::prelude::*;
 use specs::prelude::*;
-use broguelike::map::{Map, MAPHEIGHT, MAPWIDTH, Position};
-use broguelike::monster::Monster;
-use broguelike::player::Player;
-use broguelike::{BlocksTile, Name, spawner};
-use broguelike::combat::{CombatStats, SufferDamage, WantsToMelee};
-use broguelike::render::Renderable;
-use broguelike::states::RunState;
-use broguelike::visibility::Viewshed;
-use broguelike::gamelog::GameLog;
-use broguelike::items::{Consumable, InBackpack, Item, ProvidesHealing, WantsToUseItem, WantsToDropItem, WantsToPickupItem, InflictsDamage, Ranged, AreaOfEffect, Confusion};
+use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
 
-//embedded_resource!(TILE_FONT, "../resources/monochrome-transparent_packed.png");
-//embedded_resource!(TEXT_FONT, "../resources/terminal_10x16.png");
+mod components;
+pub use components::*;
+mod map;
+pub use map::*;
+mod player;
+use player::*;
+mod rect;
+pub use rect::Rect;
+mod visibility_system;
+use visibility_system::VisibilitySystem;
+mod monster_ai_system;
+use monster_ai_system::MonsterAI;
+mod map_indexing_system;
+use map_indexing_system::MapIndexingSystem;
+mod melee_combat_system;
+use melee_combat_system::MeleeCombatSystem;
+mod damage_system;
+use damage_system::DamageSystem;
+mod gui;
+mod gamelog;
+mod spawner;
+mod inventory_system;
+use inventory_system::{ ItemCollectionSystem, ItemUseSystem, ItemDropSystem };
+pub mod saveload_system;
 
-pub const SPRITE_SIZE: usize = 16;
-pub const SPRITE_SHEET_COLS: usize = 49;
-pub const SPRITE_SHEET_ROWS: usize = 22;
+
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum RunState { AwaitingInput,
+    PreRun,
+    PlayerTurn,
+    MonsterTurn,
+    ShowInventory,
+    ShowDropItem,
+    ShowTargeting { range : i32, item : Entity},
+    MainMenu { menu_selection : gui::MainMenuSelection },
+    SaveGame
+}
+
+pub struct State {
+    pub ecs: World
+}
+
+impl State {
+    fn run_systems(&mut self) {
+        let mut vis = VisibilitySystem{};
+        vis.run_now(&self.ecs);
+        let mut mob = MonsterAI{};
+        mob.run_now(&self.ecs);
+        let mut mapindex = MapIndexingSystem{};
+        mapindex.run_now(&self.ecs);
+        let mut melee = MeleeCombatSystem{};
+        melee.run_now(&self.ecs);
+        let mut damage = DamageSystem{};
+        damage.run_now(&self.ecs);
+        let mut pickup = ItemCollectionSystem{};
+        pickup.run_now(&self.ecs);
+        let mut itemuse = ItemUseSystem{};
+        itemuse.run_now(&self.ecs);
+        let mut drop_items = ItemDropSystem{};
+        drop_items.run_now(&self.ecs);
+
+        self.ecs.maintain();
+    }
+}
+
+impl GameState for State {
+    fn tick(&mut self, ctx : &mut BTerm) {
+        let mut newrunstate;
+        {
+            let runstate = self.ecs.fetch::<RunState>();
+            newrunstate = *runstate;
+        }
+
+        ctx.cls();
+
+        match newrunstate {
+            RunState::MainMenu{..} => {}
+            _ => {
+                draw_map(&self.ecs, ctx);
+
+                {
+                    let positions = self.ecs.read_storage::<Position>();
+                    let renderables = self.ecs.read_storage::<Renderable>();
+                    let map = self.ecs.fetch::<Map>();
+
+                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order) );
+                    for (pos, render) in data.iter() {
+                        let idx = map.xy_idx(pos.x, pos.y);
+                        if map.visible_tiles[idx] { ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph) }
+                    }
+
+                    gui::draw_ui(&self.ecs, ctx);
+                }
+            }
+        }
+
+        match newrunstate {
+            RunState::PreRun => {
+                self.run_systems();
+                self.ecs.maintain();
+                newrunstate = RunState::AwaitingInput;
+            }
+            RunState::AwaitingInput => {
+                newrunstate = player_input(self, ctx);
+            }
+            RunState::PlayerTurn => {
+                self.run_systems();
+                self.ecs.maintain();
+                newrunstate = RunState::MonsterTurn;
+            }
+            RunState::MonsterTurn => {
+                self.run_systems();
+                self.ecs.maintain();
+                newrunstate = RunState::AwaitingInput;
+            }
+            RunState::ShowInventory => {
+                let result = gui::show_inventory(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+                        let is_ranged = self.ecs.read_storage::<Ranged>();
+                        let is_item_ranged = is_ranged.get(item_entity);
+                        if let Some(is_item_ranged) = is_item_ranged {
+                            newrunstate = RunState::ShowTargeting{ range: is_item_ranged.range, item: item_entity };
+                        } else {
+                            let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                            intent.insert(*self.ecs.fetch::<Entity>(), WantsToUseItem{ item: item_entity, target: None }).expect("Unable to insert intent");
+                            newrunstate = RunState::PlayerTurn;
+                        }
+                    }
+                }
+            }
+            RunState::ShowDropItem => {
+                let result = gui::drop_item_menu(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+                        let mut intent = self.ecs.write_storage::<WantsToDropItem>();
+                        intent.insert(*self.ecs.fetch::<Entity>(), WantsToDropItem{ item: item_entity }).expect("Unable to insert intent");
+                        newrunstate = RunState::PlayerTurn;
+                    }
+                }
+            }
+            RunState::ShowTargeting{range, item} => {
+                let result = gui::ranged_target(self, ctx, range);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                        intent.insert(*self.ecs.fetch::<Entity>(), WantsToUseItem{ item, target: result.1 }).expect("Unable to insert intent");
+                        newrunstate = RunState::PlayerTurn;
+                    }
+                }
+            }
+            RunState::MainMenu{ .. } => {
+                let result = gui::main_menu(self, ctx);
+                match result {
+                    gui::MainMenuResult::NoSelection{ selected } => newrunstate = RunState::MainMenu{ menu_selection: selected },
+                    gui::MainMenuResult::Selected{ selected } => {
+                        match selected {
+                            gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                            gui::MainMenuSelection::LoadGame => {
+                                saveload_system::load_game(&mut self.ecs);
+                                newrunstate = RunState::AwaitingInput;
+                                saveload_system::delete_save();
+                            }
+                            gui::MainMenuSelection::Quit => { ::std::process::exit(0); }
+                        }
+                    }
+                }
+            }
+            RunState::SaveGame => {
+                saveload_system::save_game(&mut self.ecs);
+                newrunstate = RunState::MainMenu{ menu_selection : gui::MainMenuSelection::Quit };
+            }
+        }
+
+        {
+            let mut runwriter = self.ecs.write_resource::<RunState>();
+            *runwriter = newrunstate;
+        }
+        damage_system::delete_the_dead(&mut self.ecs);
+    }
+}
 
 fn main() -> BError {
-    //link_resource!(TILE_FONT, "resources/monochrome-transparent_packed.png");
-    //link_resource!(TEXT_FONT, "resources/terminal_10x16.png");
-
+    use bracket_lib::terminal::BTermBuilder;
     let mut context = BTermBuilder::simple80x50()
-        //.with_dimensions(WIDTH as u32, HEIGHT as u32)
-        .with_tile_dimensions(16u32, 16u32)
+        .with_tile_dimensions(16, 16)
         .with_title("Broguelike")
-        .with_fps_cap(30.)
-        //.with_font("monochrome-transparent_packed.png", 16u32, 16u32)
-        //.with_font("terminal_10x16.png", 16u32, 16u32)
-        //.with_simple_console(WIDTH, HEIGHT, "monochrome-transparent_packed.png")
-        //.with_sparse_console_no_bg(WIDTH, HEIGHT,"terminal_10x16.png")
         .build()?;
     context.with_post_scanlines(true);
-
-    let mut gs = broguelike::State {
-        ecs: World::new(),
+    let mut gs = State {
+        ecs: World::new()
     };
-
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Player>();
@@ -49,36 +216,36 @@ fn main() -> BError {
     gs.ecs.register::<WantsToMelee>();
     gs.ecs.register::<SufferDamage>();
     gs.ecs.register::<Item>();
+    gs.ecs.register::<ProvidesHealing>();
+    gs.ecs.register::<InflictsDamage>();
+    gs.ecs.register::<AreaOfEffect>();
+    gs.ecs.register::<Consumable>();
+    gs.ecs.register::<Ranged>();
     gs.ecs.register::<InBackpack>();
     gs.ecs.register::<WantsToPickupItem>();
     gs.ecs.register::<WantsToUseItem>();
     gs.ecs.register::<WantsToDropItem>();
-    gs.ecs.register::<Consumable>();
-    gs.ecs.register::<ProvidesHealing>();
-    gs.ecs.register::<Ranged>();
-    gs.ecs.register::<InflictsDamage>();
-    gs.ecs.register::<AreaOfEffect>();
     gs.ecs.register::<Confusion>();
+    gs.ecs.register::<SimpleMarker<SerializeMe>>();
+    gs.ecs.register::<SerializationHelper>();
+
+    gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
+
+    let map : Map = Map::new_map_rooms_and_corridors();
+    let (player_x, player_y) = map.rooms[0].center();
+
+    let player_entity = spawner::player(&mut gs.ecs, player_x, player_y);
 
     gs.ecs.insert(RandomNumberGenerator::new());
-
-    let map = Map::new_map_rooms_and_corridors(1, MAPWIDTH, MAPHEIGHT);
-    let player_point = map.center_of_room(0);
-    let player_entity = spawner::player(&mut gs.ecs, player_point);
-
     for room in map.rooms.iter().skip(1) {
         spawner::spawn_room(&mut gs.ecs, room);
     }
 
     gs.ecs.insert(map);
-    gs.ecs.insert(RunState::PreRun);
-    gs.ecs.insert(player_point);
+    gs.ecs.insert(Point::new(player_x, player_y));
     gs.ecs.insert(player_entity);
-    gs.ecs.insert(GameLog{ entries : vec!["Welcome to Rusty Roguelike".to_string()] });
+    gs.ecs.insert(RunState::MainMenu{ menu_selection: gui::MainMenuSelection::NewGame });
+    gs.ecs.insert(gamelog::GameLog{ entries : vec!["Welcome to Rusty Roguelike".to_string()] });
 
     main_loop(context, gs)
-}
-
-pub fn sprite_at(row: usize, col: usize) -> u16 {
-    (SPRITE_SHEET_COLS as u16 * row as u16) + col as u16
 }
