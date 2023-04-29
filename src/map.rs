@@ -10,9 +10,8 @@ pub const MAPCOUNT : usize = MAPHEIGHT * MAPWIDTH;
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
-    Wall, Floor
+    Wall, Floor, StairsDown
 }
-
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Map {
     pub tiles : Vec<TileType>,
@@ -22,6 +21,7 @@ pub struct Map {
     pub revealed_tiles : Vec<bool>,
     pub visible_tiles : Vec<bool>,
     pub blocked : Vec<bool>,
+    pub depth : i32,
 
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
@@ -80,7 +80,7 @@ impl Map {
 
     /// Makes a new map using the algorithm from http://rogueliketutorials.com/tutorials/tcod/part-3/
     /// This gives a handful of random rooms and corridors joining them together.
-    pub fn new_map_rooms_and_corridors() -> Map {
+    pub fn new_map_rooms_and_corridors(new_depth : i32) -> Map {
         let mut map = Map{
             tiles : vec![TileType::Wall; MAPCOUNT],
             rooms : Vec::new(),
@@ -89,7 +89,8 @@ impl Map {
             revealed_tiles : vec![false; MAPCOUNT],
             visible_tiles : vec![false; MAPCOUNT],
             blocked : vec![false; MAPCOUNT],
-            tile_content : vec![Vec::new(); MAPCOUNT]
+            tile_content : vec![Vec::new(); MAPCOUNT],
+            depth: new_depth
         };
 
         const MAX_ROOMS : i32 = 30;
@@ -112,20 +113,24 @@ impl Map {
                 map.apply_room_to_map(&new_room);
 
                 if !map.rooms.is_empty() {
-                    let new_pos = new_room.center();
-                    let prev_pos = map.rooms[map.rooms.len()-1].center();
+                    let new_p = new_room.center();
+                    let prev_p = map.rooms[map.rooms.len()-1].center();
                     if rng.range(0,2) == 1 {
-                        map.apply_horizontal_tunnel(prev_pos.x, new_pos.x, prev_pos.y);
-                        map.apply_vertical_tunnel(prev_pos.y, new_pos.y, new_pos.x);
+                        map.apply_horizontal_tunnel(prev_p.x, new_p.x, prev_p.y);
+                        map.apply_vertical_tunnel(prev_p.y, new_p.y, new_p.x);
                     } else {
-                        map.apply_vertical_tunnel(prev_pos.y, new_pos.y, prev_pos.x);
-                        map.apply_horizontal_tunnel(prev_pos.x, new_pos.x, new_pos.y);
+                        map.apply_vertical_tunnel(prev_p.y, new_p.y, prev_p.x);
+                        map.apply_horizontal_tunnel(prev_p.x, new_p.x, new_p.y);
                     }
                 }
 
                 map.rooms.push(new_room);
             }
         }
+
+        let stairs_position = map.rooms[map.rooms.len()-1].center();
+        let stairs_idx = map.xy_idx(stairs_position.x, stairs_position.y);
+        map.tiles[stairs_idx] = TileType::StairsDown;
 
         map
     }
@@ -191,6 +196,10 @@ pub fn draw_map(ecs: &World, ctx : &mut BTerm) {
                 TileType::Wall => {
                     glyph = to_cp437('#');
                     fg = RGB::from_f32(0., 1.0, 0.);
+                }
+                TileType::StairsDown => {
+                    glyph = to_cp437('>');
+                    fg = RGB::from_f32(0., 1.0, 1.0);
                 }
             }
             if !map.visible_tiles[idx] { fg = fg.to_greyscale() }
