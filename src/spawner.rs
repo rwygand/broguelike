@@ -4,10 +4,28 @@ use crate::combat::CombatStats;
 use crate::map::{MAPWIDTH, Position};
 use crate::monster::Monster;
 use crate::{BlocksTile, Name};
-use crate::items::{Item, Potion};
+use crate::items::{AreaOfEffect, Confusion, Consumable, InflictsDamage, Item, ProvidesHealing, Ranged};
 use crate::player::Player;
 use crate::render::Renderable;
 use crate::visibility::Viewshed;
+
+/// Spawns the player and returns his/her entity object.
+pub fn player(ecs : &mut World, point: Point) -> Entity {
+    ecs
+        .create_entity()
+        .with(Position::from_point(point))
+        .with(Renderable {
+            glyph: to_cp437('@'),
+            fg: RGB::named(YELLOW),
+            bg: RGB::named(BLACK),
+            render_order: 0
+        })
+        .with(Player{})
+        .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
+        .with(Name{name: "Player".to_string() })
+        .with(CombatStats{ max_hp: 30, hp: 30, defense: 2, power: 5 })
+        .build()
+}
 
 const MAX_MONSTERS : i32 = 4;
 const MAX_ITEMS : i32 = 2;
@@ -28,7 +46,7 @@ pub fn spawn_room(ecs: &mut World, room : &Rect) {
             while !added {
                 let x = (room.x1 + rng.roll_dice(1, i32::abs(room.x2 - room.x1))) as usize;
                 let y = (room.y1 + rng.roll_dice(1, i32::abs(room.y2 - room.y1))) as usize;
-                let idx = (y * MAPWIDTH as usize) + x;
+                let idx = (y * MAPWIDTH) + x;
                 if !monster_spawn_points.contains(&idx) {
                     monster_spawn_points.push(idx);
                     added = true;
@@ -41,7 +59,7 @@ pub fn spawn_room(ecs: &mut World, room : &Rect) {
             while !added {
                 let x = (room.x1 + rng.roll_dice(1, i32::abs(room.x2 - room.x1))) as usize;
                 let y = (room.y1 + rng.roll_dice(1, i32::abs(room.y2 - room.y1))) as usize;
-                let idx = (y * MAPWIDTH as usize) + x;
+                let idx = (y * MAPWIDTH) + x;
                 if !item_spawn_points.contains(&idx) {
                     item_spawn_points.push(idx);
                     added = true;
@@ -52,60 +70,56 @@ pub fn spawn_room(ecs: &mut World, room : &Rect) {
 
     // Actually spawn the monsters
     for idx in monster_spawn_points.iter() {
-        let x = *idx % MAPWIDTH as usize;
-        let y = *idx / MAPWIDTH as usize;
-        random_monster(ecs, Point::new(x, y));
+        let x = *idx % MAPWIDTH;
+        let y = *idx / MAPWIDTH;
+        random_monster(ecs, x as i32, y as i32);
     }
-    // Actually spawn the potions
+
+    // Actually spawn the items
     for idx in item_spawn_points.iter() {
-        let x = *idx % MAPWIDTH as usize;
-        let y = *idx / MAPWIDTH as usize;
-        health_potion(ecs, x as i32, y as i32);
+        let x = *idx % MAPWIDTH;
+        let y = *idx / MAPWIDTH;
+        random_item(ecs, x as i32, y as i32);
     }
-
 }
 
-/// Spawns the player and returns his/her entity object.
-pub fn player(ecs : &mut World, player_point: Point) -> Entity {
-    ecs.create_entity()
-        .with(Position { x: player_point.x, y: player_point.y } )
-        .with(Renderable {
-            glyph: to_cp437('@'),
-            fg: RGB::named(YELLOW),
-            bg: RGB::named(BLACK),
-            render_order: 0
-        })
-        .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
-        .with(Player{})
-        .with(Name{name: "Player".to_string() })
-        .with(CombatStats{ max_hp: 30, hp: 30, defense: 2, power: 5 })
-        .build()
-}
-
-/// Spawns a random monster at a given location
-pub fn random_monster(ecs: &mut World, point: Point) {
+fn random_monster(ecs: &mut World, x: i32, y: i32) {
     let roll :i32;
     {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
         roll = rng.roll_dice(1, 2);
     }
     match roll {
-        1 => { orc(ecs, point) }
-        _ => { goblin(ecs, point) }
+        1 => { orc(ecs, x, y) }
+        _ => { goblin(ecs, x, y) }
     }
 }
 
-fn orc(ecs: &mut World, point: Point) { monster(ecs, point, to_cp437('o'), "Orc"); }
-fn goblin(ecs: &mut World, point: Point) { monster(ecs, point, to_cp437('g'), "Goblin"); }
+fn random_item(ecs: &mut World, x: i32, y: i32) {
+    let roll :i32;
+    {
+        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
+        roll = rng.roll_dice(1, 4);
+    }
+    match roll {
+        1 => { health_potion(ecs, x, y) }
+        2 => { fireball_scroll(ecs, x, y) }
+        3 => { confusion_scroll(ecs, x, y) }
+        _ => { magic_missile_scroll(ecs, x, y) }
+    }
+}
 
-fn monster<S : ToString>(ecs: &mut World, point: Point, glyph : FontCharType, name : S) {
+fn orc(ecs: &mut World, x: i32, y: i32) { monster(ecs, x, y, to_cp437('o'), "Orc"); }
+fn goblin(ecs: &mut World, x: i32, y: i32) { monster(ecs, x, y, to_cp437('g'), "Goblin"); }
+
+fn monster<S : ToString>(ecs: &mut World, x: i32, y: i32, glyph : FontCharType, name : S) {
     ecs.create_entity()
-        .with(Position::from_point(point))
+        .with(Position{ x, y })
         .with(Renderable{
             glyph,
             fg: RGB::named(RED),
             bg: RGB::named(BLACK),
-            render_order: 1,
+            render_order: 1
         })
         .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
         .with(Monster{})
@@ -122,10 +136,63 @@ fn health_potion(ecs: &mut World, x: i32, y: i32) {
             glyph: to_cp437('¡'),
             fg: RGB::named(MAGENTA),
             bg: RGB::named(BLACK),
-            render_order: 2,
+            render_order: 2
         })
         .with(Name{ name : "Health Potion".to_string() })
         .with(Item{})
-        .with(Potion{ heal_amount: 8 })
+        .with(Consumable{})
+        .with(ProvidesHealing{ heal_amount: 8 })
+        .build();
+}
+
+fn magic_missile_scroll(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position{ x, y })
+        .with(Renderable{
+            glyph: to_cp437(')'),
+            fg: RGB::named(CYAN),
+            bg: RGB::named(BLACK),
+            render_order: 2
+        })
+        .with(Name{ name : "Magic Missile Scroll".to_string() })
+        .with(Item{})
+        .with(Consumable{})
+        .with(Ranged{ range: 6 })
+        .with(InflictsDamage{ damage: 20 })
+        .build();
+}
+
+fn fireball_scroll(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position{ x, y })
+        .with(Renderable{
+            glyph: to_cp437(')'),
+            fg: RGB::named(ORANGE),
+            bg: RGB::named(BLACK),
+            render_order: 2
+        })
+        .with(Name{ name : "Fireball Scroll".to_string() })
+        .with(Item{})
+        .with(Consumable{})
+        .with(Ranged{ range: 6 })
+        .with(InflictsDamage{ damage: 20 })
+        .with(AreaOfEffect{ radius: 3 })
+        .build();
+}
+
+fn confusion_scroll(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position{ x, y })
+        .with(Renderable{
+            glyph: to_cp437(')'),
+            fg: RGB::named(PINK),
+            bg: RGB::named(BLACK),
+            render_order: 2
+        })
+        .with(Name{ name : "Confusion Scroll".to_string() })
+        .with(Item{})
+        .with(Consumable{})
+        .with(Ranged{ range: 6 })
+        .with(Confusion{ turns: 4 })
         .build();
 }

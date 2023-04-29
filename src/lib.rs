@@ -14,7 +14,7 @@ pub mod inventory_system;
 use specs::prelude::*;
 use specs_derive::*;
 use crate::combat::{DamageSystem, MeleeCombatSystem};
-use crate::inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};
+use crate::inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
 use crate::map::MapIndexingSystem;
 use crate::monster::MonsterAI;
 use crate::visibility::system::VisibilitySystem;
@@ -46,7 +46,7 @@ impl State {
         damage.run_now(&self.ecs);
         let mut pickup = ItemCollectionSystem{};
         pickup.run_now(&self.ecs);
-        let mut potions = PotionUseSystem{};
+        let mut potions = ItemUseSystem {};
         potions.run_now(&self.ecs);
         let mut drop_items = ItemDropSystem{};
         drop_items.run_now(&self.ecs);

@@ -1,6 +1,6 @@
 use bracket_lib::prelude::*;
 use specs::prelude::*;
-use broguelike::map::{Map, Position};
+use broguelike::map::{Map, MAPHEIGHT, MAPWIDTH, Position};
 use broguelike::monster::Monster;
 use broguelike::player::Player;
 use broguelike::{BlocksTile, Name, spawner};
@@ -9,7 +9,7 @@ use broguelike::render::Renderable;
 use broguelike::states::RunState;
 use broguelike::visibility::Viewshed;
 use broguelike::gamelog::GameLog;
-use broguelike::items::{InBackpack, Item, Potion, WantsToDrinkPotion, WantsToDropItem, WantsToPickupItem};
+use broguelike::items::{Consumable, InBackpack, Item, ProvidesHealing, WantsToUseItem, WantsToDropItem, WantsToPickupItem, InflictsDamage, Ranged, AreaOfEffect, Confusion};
 
 //embedded_resource!(TILE_FONT, "../resources/monochrome-transparent_packed.png");
 //embedded_resource!(TEXT_FONT, "../resources/terminal_10x16.png");
@@ -49,15 +49,20 @@ fn main() -> BError {
     gs.ecs.register::<WantsToMelee>();
     gs.ecs.register::<SufferDamage>();
     gs.ecs.register::<Item>();
-    gs.ecs.register::<Potion>();
     gs.ecs.register::<InBackpack>();
     gs.ecs.register::<WantsToPickupItem>();
-    gs.ecs.register::<WantsToDrinkPotion>();
+    gs.ecs.register::<WantsToUseItem>();
     gs.ecs.register::<WantsToDropItem>();
+    gs.ecs.register::<Consumable>();
+    gs.ecs.register::<ProvidesHealing>();
+    gs.ecs.register::<Ranged>();
+    gs.ecs.register::<InflictsDamage>();
+    gs.ecs.register::<AreaOfEffect>();
+    gs.ecs.register::<Confusion>();
 
     gs.ecs.insert(RandomNumberGenerator::new());
 
-    let map = Map::new_map_rooms_and_corridors(1, 80, 50);
+    let map = Map::new_map_rooms_and_corridors(1, MAPWIDTH, MAPHEIGHT);
     let player_point = map.center_of_room(0);
     let player_entity = spawner::player(&mut gs.ecs, player_point);
 

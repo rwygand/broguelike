@@ -5,9 +5,9 @@ use specs::prelude::*;
 use specs_derive::Component;
 pub use indexing_system::MapIndexingSystem;
 
-pub const MAPWIDTH : i32 = 80;
-pub const MAPHEIGHT : i32 = 43;
-pub const MAPCOUNT : i32 = MAPHEIGHT * MAPWIDTH;
+pub const MAPWIDTH : usize = 80;
+pub const MAPHEIGHT : usize = 43;
+pub const MAPCOUNT : usize = MAPHEIGHT * MAPWIDTH;
 
 #[derive(Component, Debug, Default)]
 pub struct Position {
@@ -79,11 +79,11 @@ impl Algorithm2D for Map {
 }
 
 impl Map {
-    fn new(depth: i32, width: i32, height: i32) -> Self {
+    fn new(depth: i32, width: usize, height: usize) -> Self {
         Self {
             depth,
-            width,
-            height,
+            width: width as i32,
+            height: height as i32,
             tiles: vec![TileType::Wall; MAPCOUNT as usize],
             rooms: Vec::new(),
             revealed_tiles: vec![false; MAPCOUNT as usize],
@@ -105,7 +105,7 @@ impl Map {
         }
     }
 
-    pub fn new_map_rooms_and_corridors(_depth: i32, width: i32, height: i32) -> Map {
+    pub fn new_map_rooms_and_corridors(_depth: i32, width: usize, height: usize) -> Map {
         let mut map = Map::new(1, width, height);
 
         let mut rng = RandomNumberGenerator::new();
@@ -155,8 +155,8 @@ impl Map {
         for _ in 0..MAX_ROOMS {
             let w = rng.range(MIN_SIZE, MAX_SIZE);
             let h = rng.range(MIN_SIZE, MAX_SIZE);
-            let x = rng.roll_dice(1, MAPWIDTH - w - 1) - 1;
-            let y = rng.roll_dice(1, MAPHEIGHT - h - 1) - 1;
+            let x = rng.roll_dice(1, self.width - w - 1) - 1;
+            let y = rng.roll_dice(1, self.height - h - 1) - 1;
             let new_room = Rect::with_size(x, y, w, h);
             let mut ok = true;
             for other_room in self.rooms.iter() {
