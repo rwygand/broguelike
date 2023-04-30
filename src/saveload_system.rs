@@ -48,7 +48,7 @@ pub fn save_game(ecs : &mut World) {
             WantsToDropItem, SerializationHelper, Equippable, Equipped, MeleePowerBonus, DefenseBonus,
             WantsToRemoveItem, ParticleLifetime, HungerClock, ProvidesFood, MagicMapper, Hidden,
             EntryTrigger, EntityMoved, SingleActivation, BlocksVisibility, Door, Bystander,
-            Vendor, Quips
+            Vendor, Quips, Attributes
         );
     }
 
@@ -99,7 +99,7 @@ pub fn load_game(ecs: &mut World) {
             WantsToDropItem, SerializationHelper, Equippable, Equipped, MeleePowerBonus, DefenseBonus,
             WantsToRemoveItem, ParticleLifetime, HungerClock, ProvidesFood, MagicMapper, Hidden,
             EntryTrigger, EntityMoved, SingleActivation, BlocksVisibility, Door, Bystander, Vendor,
-            Quips
+            Quips, Attributes
         );
     }
 

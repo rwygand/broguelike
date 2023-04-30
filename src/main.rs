@@ -37,6 +37,7 @@ pub mod map_builders;
 pub mod camera;
 pub mod raws;
 mod bystander_ai_system;
+pub mod gamesystem;
 
 #[macro_use]
 extern crate lazy_static;
@@ -460,6 +461,7 @@ fn main() -> BError {
     gs.ecs.register::<Bystander>();
     gs.ecs.register::<Vendor>();
     gs.ecs.register::<Quips>();
+    gs.ecs.register::<Attributes>();
 
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 

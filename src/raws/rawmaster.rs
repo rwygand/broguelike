@@ -3,6 +3,7 @@ use specs::prelude::*;
 use crate::components::*;
 use super::{Raws};
 use bracket_lib::prelude::*;
+use crate::gamesystem::attr_bonus;
 use crate::random_table::RandomTable;
 
 pub enum SpawnType {
@@ -175,6 +176,26 @@ pub fn spawn_named_mob(raws: &RawMaster, new_entity : EntityBuilder, key : &str,
                 available: quips.clone()
             });
         }
+
+        let mut attr = Attributes{
+            might: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
+            fitness: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
+            quickness: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
+            intelligence: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
+        };
+        if let Some(might) = mob_template.attributes.might {
+            attr.might = Attribute{ base: might, modifiers: 0, bonus: attr_bonus(might) };
+        }
+        if let Some(fitness) = mob_template.attributes.fitness {
+            attr.fitness = Attribute{ base: fitness, modifiers: 0, bonus: attr_bonus(fitness) };
+        }
+        if let Some(quickness) = mob_template.attributes.quickness {
+            attr.quickness = Attribute{ base: quickness, modifiers: 0, bonus: attr_bonus(quickness) };
+        }
+        if let Some(intelligence) = mob_template.attributes.intelligence {
+            attr.intelligence = Attribute{ base: intelligence, modifiers: 0, bonus: attr_bonus(intelligence) };
+        }
+        eb = eb.with(attr);
 
         return Some(eb.build());
     }

@@ -3,6 +3,7 @@ use specs::prelude::*;
 use super::{components::*, raws::*, TileType, Map, random_table::RandomTable, Rect };
 use specs::saveload::{MarkedBuilder, SimpleMarker};
 use std::collections::HashMap;
+use crate::gamesystem::attr_bonus;
 use crate::raws::SpawnType;
 
 /// Spawns the player and returns his/her entity object.
@@ -21,6 +22,12 @@ pub fn player(ecs : &mut World, player_x : i32, player_y : i32) -> Entity {
         .with(Name{name: "Player".to_string() })
         .with(CombatStats{ max_hp: 30, hp: 30, defense: 2, power: 5 })
         .with(HungerClock{ state: HungerState::WellFed, duration: 20 })
+        .with(Attributes{
+            might: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
+            fitness: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
+            quickness: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
+            intelligence: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
+        })
         .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
