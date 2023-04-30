@@ -454,6 +454,7 @@ fn main() -> BError {
     gs.ecs.register::<BlocksVisibility>();
     gs.ecs.register::<Door>();
     gs.ecs.register::<Bystander>();
+    gs.ecs.register::<Vendor>();
 
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 

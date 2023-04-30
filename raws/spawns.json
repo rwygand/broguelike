@@ -187,7 +187,7 @@
         "power" : 4
       },
       "vision_range" : 4,
-      "ai" : "bystander"
+      "ai" : "vendor"
     },
     {
       "name" : "Shady Salesman",
@@ -205,7 +205,7 @@
         "power" : 4
       },
       "vision_range" : 4,
-      "ai" : "bystander"
+      "ai" : "vendor"
     },
     {
       "name" : "Patron",
@@ -278,7 +278,7 @@
         "power" : 4
       },
       "vision_range" : 4,
-      "ai" : "bystander"
+      "ai" : "vendor"
     },
 
     {
@@ -297,7 +297,7 @@
         "power" : 4
       },
       "vision_range" : 4,
-      "ai" : "bystander"
+      "ai" : "vendor"
     },
 
     {
@@ -316,7 +316,7 @@
         "power" : 4
       },
       "vision_range" : 4,
-      "ai" : "bystander"
+      "ai" : "vendor"
     },
 
     {
