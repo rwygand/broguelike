@@ -1,8 +1,7 @@
-use bracket_lib::geometry::Point;
-use super::{MetaMapBuilder, BuilderMap };
-use bracket_lib::prelude::{RandomNumberGenerator, DistanceAlg};
-use crate::Rect;
+use super::{MetaMapBuilder, BuilderMap, Rect };
+use bracket_lib::prelude::*;
 
+#[allow(dead_code)]
 pub enum RoomSort { LEFTMOST, RIGHTMOST, TOPMOST, BOTTOMMOST, CENTRAL }
 
 pub struct RoomSorter {

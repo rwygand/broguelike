@@ -1,9 +1,9 @@
 use super::{InitialMapBuilder, MetaMapBuilder, BuilderMap, TileType, Position};
+use bracket_lib::prelude::{RandomNumberGenerator, rex, console};
 pub mod prefab_levels;
 pub mod prefab_sections;
 pub mod prefab_rooms;
 use std::collections::HashSet;
-use bracket_lib::prelude::*;
 
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]

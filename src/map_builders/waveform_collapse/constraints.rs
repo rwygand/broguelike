@@ -60,10 +60,10 @@ pub fn build_patterns(map : &Map, chunk_size: i32, include_flipping: bool, dedup
 
     // Dedupe
     if dedupe {
-        log(format!("Pre de-duplication, there are {} patterns", patterns.len()));
+        console::log(format!("Pre de-duplication, there are {} patterns", patterns.len()));
         let set: HashSet<Vec<TileType>> = patterns.drain(..).collect(); // dedup
         patterns.extend(set.into_iter());
-        log(format!("There are {} patterns", patterns.len()));
+        console::log(format!("There are {} patterns", patterns.len()));
     }
 
     patterns

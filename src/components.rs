@@ -1,12 +1,10 @@
 #![allow(deprecated)]
-
 use specs::prelude::*;
 use specs_derive::*;
-use {RGB};
+use bracket_lib::prelude::{Point, FontCharType, RGB};
 use serde::{Serialize, Deserialize};
 use specs::saveload::{Marker, ConvertSaveload};
 use specs::error::NoError;
-use bracket_lib::prelude::*;
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Position {
@@ -103,6 +101,14 @@ pub struct ProvidesHealing {
     pub heal_amount : i32
 }
 
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct BlocksVisibility {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct Door {
+    pub open: bool
+}
+
 #[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct InBackpack {
     pub owner : Entity
@@ -185,14 +191,6 @@ pub struct EntityMoved {}
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct SingleActivation {}
-
-#[derive(Component, Debug, Serialize, Deserialize, Clone)]
-pub struct BlocksVisibility {}
-
-#[derive(Component, Debug, Serialize, Deserialize, Clone)]
-pub struct Door {
-    pub open: bool
-}
 
 // Serialization helper code. We need to implement ConvertSaveLoad for each type that contains an
 // Entity.

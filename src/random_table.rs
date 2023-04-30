@@ -1,4 +1,4 @@
-use bracket_lib::prelude::*;
+use bracket_lib::prelude::RandomNumberGenerator;
 
 pub struct RandomEntry {
     name : String,

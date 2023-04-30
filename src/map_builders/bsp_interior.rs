@@ -57,7 +57,6 @@ impl BspInteriorBuilder {
             draw_corridor(&mut build_data.map, start_x, start_y, end_x, end_y);
             build_data.take_snapshot();
         }
-
         build_data.rooms = Some(rooms);
     }
 

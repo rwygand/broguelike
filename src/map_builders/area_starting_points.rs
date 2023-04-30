@@ -1,5 +1,5 @@
-use bracket_lib::prelude::{DistanceAlg, Point, RandomNumberGenerator};
 use super::{MetaMapBuilder, BuilderMap, Position, TileType};
+use bracket_lib::prelude::{ RandomNumberGenerator, DistanceAlg, Point };
 
 #[allow(dead_code)]
 pub enum XStart { LEFT, CENTER, RIGHT }

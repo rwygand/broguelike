@@ -1,6 +1,5 @@
 use specs::prelude::*;
-use super::{  ParticleLifetime, Position, Renderable };
-use RGB;
+use super::{ ParticleLifetime, Position, Renderable };
 use bracket_lib::prelude::*;
 
 pub fn cull_dead_particles(ecs : &mut World, ctx : &BTerm) {

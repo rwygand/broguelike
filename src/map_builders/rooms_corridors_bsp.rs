@@ -23,8 +23,8 @@ impl BspCorridors {
         } else {
             panic!("BSP Corridors require a builder with room structures");
         }
-
         let mut corridors : Vec<Vec<usize>> = Vec::new();
+
         for i in 0..rooms.len()-1 {
             let room = rooms[i];
             let next_room = rooms[i+1];
@@ -36,6 +36,7 @@ impl BspCorridors {
             corridors.push(corridor);
             build_data.take_snapshot();
         }
+
         build_data.corridors = Some(corridors);
     }
 }

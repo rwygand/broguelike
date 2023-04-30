@@ -1,7 +1,6 @@
 use specs::prelude::*;
 use super::{Viewshed, Monster, Map, Position, WantsToMelee, RunState,
     Confusion, particle_system::ParticleBuilder, EntityMoved};
-use {Point};
 use bracket_lib::prelude::*;
 
 pub struct MonsterAI {}

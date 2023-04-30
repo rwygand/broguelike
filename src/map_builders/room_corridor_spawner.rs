@@ -1,5 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, spawner};
-use bracket_lib::prelude::{RandomNumberGenerator};
+use bracket_lib::prelude::RandomNumberGenerator;
 
 pub struct CorridorSpawner {}
 
@@ -20,10 +20,10 @@ impl CorridorSpawner {
             for c in corridors.iter() {
                 let depth = build_data.map.depth;
                 spawner::spawn_region(&build_data.map,
-                                      rng,
-                                      &c,
-                                      depth,
-                                      &mut build_data.spawn_list);
+                    rng,
+                    &c,
+                    depth,
+                    &mut build_data.spawn_list);
             }
         } else {
             panic!("Corridor Based Spawning only works after corridors have been created");

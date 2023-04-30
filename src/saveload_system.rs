@@ -1,5 +1,4 @@
 #![allow(deprecated)]
-
 use specs::prelude::*;
 use specs::saveload::{SimpleMarker, SimpleMarkerAllocator, SerializeComponents, DeserializeComponents, MarkedBuilder};
 use specs::error::NoError;
@@ -7,7 +6,7 @@ use super::components::*;
 use std::fs::File;
 use std::path::Path;
 use std::fs;
-use bracket_lib::prelude::*;
+use bracket_lib::geometry::Point;
 
 macro_rules! serialize_individually {
     ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*) => {
@@ -111,7 +110,7 @@ pub fn load_game(ecs: &mut World) {
         for (e,h) in (&entities, &helper).join() {
             let mut worldmap = ecs.write_resource::<super::map::Map>();
             *worldmap = h.map.clone();
-            worldmap.tile_content = vec![Vec::new(); super::map::MAPCOUNT];
+            worldmap.tile_content = vec![Vec::new(); (worldmap.height * worldmap.width) as usize];
             deleteme = Some(e);
         }
         for (e,_p,pos) in (&entities, &player, &position).join() {

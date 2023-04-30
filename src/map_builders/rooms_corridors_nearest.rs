@@ -1,5 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, Rect, draw_corridor };
-use bracket_lib::prelude::{RandomNumberGenerator, Point, DistanceAlg};
+use bracket_lib::prelude::{DistanceAlg, Point, RandomNumberGenerator};
 use std::collections::HashSet;
 
 pub struct NearestCorridors {}

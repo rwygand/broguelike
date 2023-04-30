@@ -1,5 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, TileType};
-use bracket_lib::prelude::*;
+use bracket_lib::prelude::{ RandomNumberGenerator, DijkstraMap };
 
 pub struct DistantExit {}
 

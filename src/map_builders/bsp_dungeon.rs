@@ -35,6 +35,7 @@ impl BspDungeonBuilder {
             let candidate = self.get_random_sub_rect(rect, rng);
 
             if self.is_possible(candidate, &build_data, &rooms) {
+                //apply_room_to_map(&mut build_data.map, &candidate);
                 rooms.push(candidate);
                 self.add_subrects(rect);
             }
@@ -42,6 +43,21 @@ impl BspDungeonBuilder {
             n_rooms += 1;
         }
 
+        /*
+        // Now we sort the rooms
+        rooms.sort_by(|a,b| a.x1.cmp(&b.x1) );
+
+        // Now we want corridors
+        for i in 0..rooms.len()-1 {
+            let room = rooms[i];
+            let next_room = rooms[i+1];
+            let start_x = room.x1 + (rng.roll_dice(1, i32::abs(room.x1 - room.x2))-1);
+            let start_y = room.y1 + (rng.roll_dice(1, i32::abs(room.y1 - room.y2))-1);
+            let end_x = next_room.x1 + (rng.roll_dice(1, i32::abs(next_room.x1 - next_room.x2))-1);
+            let end_y = next_room.y1 + (rng.roll_dice(1, i32::abs(next_room.y1 - next_room.y2))-1);
+            draw_corridor(&mut build_data.map, start_x, start_y, end_x, end_y);
+            build_data.take_snapshot();
+        }*/
         build_data.rooms = Some(rooms);
     }
 
@@ -68,8 +84,8 @@ impl BspDungeonBuilder {
         let rect_width = i32::abs(rect.x1 - rect.x2);
         let rect_height = i32::abs(rect.y1 - rect.y2);
 
-        let w = i32::max(3, rng.roll_dice(1, i32::min(rect_width, 10))-1) + 1;
-        let h = i32::max(3, rng.roll_dice(1, i32::min(rect_height, 10))-1) + 1;
+        let w = i32::max(3, rng.roll_dice(1, i32::min(rect_width, 20))-1) + 1;
+        let h = i32::max(3, rng.roll_dice(1, i32::min(rect_height, 20))-1) + 1;
 
         result.x1 += rng.roll_dice(1, 6)-1;
         result.y1 += rng.roll_dice(1, 6)-1;
@@ -79,7 +95,7 @@ impl BspDungeonBuilder {
         result
     }
 
-    fn is_possible(&self, rect : Rect, build_data : &BuilderMap, rooms: &Vec<Rect>) -> bool {
+    fn is_possible(&self, rect : Rect, build_data : &BuilderMap, rooms: &[Rect]) -> bool {
         let mut expanded = rect;
         expanded.x1 -= 2;
         expanded.x2 += 2;

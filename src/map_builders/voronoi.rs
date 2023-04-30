@@ -1,5 +1,5 @@
-use bracket_lib::prelude::*;
 use super::{InitialMapBuilder, BuilderMap, TileType};
+use bracket_lib::prelude::*;
 
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]

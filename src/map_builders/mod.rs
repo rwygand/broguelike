@@ -1,3 +1,5 @@
+use super::{Map, Rect, TileType, Position, spawner, SHOW_MAPGEN_VISUALIZER};
+use specs::prelude::*;
 mod simple_map;
 mod bsp_dungeon;
 mod bsp_interior;
@@ -26,38 +28,35 @@ mod rooms_corridors_nearest;
 mod rooms_corridors_lines;
 mod room_corridor_spawner;
 mod door_placement;
-
-use super::{Map, Rect, TileType, Position, spawner, SHOW_MAPGEN_VISUALIZER};
-use waveform_collapse::*;
-use maze::*;
-use dla::*;
-use voronoi::*;
-use common::*;
-use drunkard::*;
-use cellular_automata::CellularAutomataBuilder;
-use bsp_interior::BspInteriorBuilder;
-use bsp_dungeon::BspDungeonBuilder;
+use distant_exit::DistantExit;
 use simple_map::SimpleMapBuilder;
-use prefab_builder::*;
-use specs::prelude::*;
-use bracket_lib::prelude::*;
+use bsp_dungeon::BspDungeonBuilder;
+use bsp_interior::BspInteriorBuilder;
+use cellular_automata::CellularAutomataBuilder;
+use drunkard::DrunkardsWalkBuilder;
+use voronoi::VoronoiCellBuilder;
+use waveform_collapse::WaveformCollapseBuilder;
+use prefab_builder::PrefabBuilder;
 use room_based_spawner::RoomBasedSpawner;
+use room_based_starting_position::RoomBasedStartingPosition;
+use room_based_stairs::RoomBasedStairs;
 use area_starting_points::{AreaStartingPosition, XStart, YStart};
 use cull_unreachable::CullUnreachable;
-use distant_exit::DistantExit;
-use room_based_stairs::RoomBasedStairs;
-use room_based_starting_position::RoomBasedStartingPosition;
-use room_corner_rounding::RoomCornerRounder;
-use room_draw::RoomDrawer;
-use room_exploder::RoomExploder;
-use room_sorter::{RoomSort, RoomSorter};
-use rooms_corridors_bsp::BspCorridors;
-use rooms_corridors_dogleg::DoglegCorridors;
 use voronoi_spawning::VoronoiSpawning;
+use maze::MazeBuilder;
+use dla::DLABuilder;
+use common::*;
+use room_exploder::RoomExploder;
+use room_corner_rounding::RoomCornerRounder;
+use rooms_corridors_dogleg::DoglegCorridors;
+use rooms_corridors_bsp::BspCorridors;
+use room_sorter::{RoomSorter, RoomSort};
+use room_draw::RoomDrawer;
 use rooms_corridors_nearest::NearestCorridors;
-use room_corridor_spawner::CorridorSpawner;
 use rooms_corridors_lines::StraightLineCorridors;
-use crate::map_builders::door_placement::DoorPlacement;
+use room_corridor_spawner::CorridorSpawner;
+use door_placement::DoorPlacement;
+use bracket_lib::prelude::RandomNumberGenerator;
 
 pub struct BuilderMap {
     pub spawn_list : Vec<(usize, String)>,
@@ -65,7 +64,9 @@ pub struct BuilderMap {
     pub starting_position : Option<Position>,
     pub rooms: Option<Vec<Rect>>,
     pub corridors: Option<Vec<Vec<usize>>>,
-    pub history : Vec<Map>
+    pub history : Vec<Map>,
+    pub width: i32,
+    pub height: i32
 }
 
 impl BuilderMap {
@@ -87,17 +88,19 @@ pub struct BuilderChain {
 }
 
 impl BuilderChain {
-    pub fn new(new_depth : i32) -> BuilderChain {
+    pub fn new(new_depth : i32, width: i32, height: i32) -> BuilderChain {
         BuilderChain{
             starter: None,
             builders: Vec::new(),
             build_data : BuilderMap {
                 spawn_list: Vec::new(),
-                map: Map::new(new_depth),
+                map: Map::new(new_depth, width, height),
                 starting_position: None,
                 rooms: None,
                 corridors: None,
-                history : Vec::new()
+                history : Vec::new(),
+                width,
+                height
             }
         }
     }
@@ -112,7 +115,6 @@ impl BuilderChain {
     pub fn with(&mut self, metabuilder : Box<dyn MetaMapBuilder>) {
         self.builders.push(metabuilder);
     }
-
 
     pub fn build_map(&mut self, rng : &mut RandomNumberGenerator) {
         match &mut self.starter {
@@ -134,7 +136,6 @@ impl BuilderChain {
             spawner::spawn_entity(ecs, &(&entity.0, &entity.1));
         }
     }
-
 }
 
 pub trait InitialMapBuilder {
@@ -143,6 +144,26 @@ pub trait InitialMapBuilder {
 
 pub trait MetaMapBuilder {
     fn build_map(&mut self, rng: &mut RandomNumberGenerator, build_data : &mut BuilderMap);
+}
+
+fn random_start_position(rng: &mut RandomNumberGenerator) -> (XStart, YStart) {
+    let x;
+    let xroll = rng.roll_dice(1, 3);
+    match xroll {
+        1 => x = XStart::LEFT,
+        2 => x = XStart::CENTER,
+        _ => x = XStart::RIGHT
+    }
+
+    let y;
+    let yroll = rng.roll_dice(1, 3);
+    match yroll {
+        1 => y = YStart::BOTTOM,
+        2 => y = YStart::CENTER,
+        _ => y = YStart::TOP
+    }
+
+    (x, y)
 }
 
 fn random_room_builder(rng: &mut RandomNumberGenerator, builder : &mut BuilderChain) {
@@ -179,7 +200,6 @@ fn random_room_builder(rng: &mut RandomNumberGenerator, builder : &mut BuilderCh
         if cspawn_roll == 1 {
             builder.with(CorridorSpawner::new());
         }
-
 
         let modifier_roll = rng.roll_dice(1, 6);
         match modifier_roll {
@@ -243,8 +263,8 @@ fn random_shape_builder(rng: &mut RandomNumberGenerator, builder : &mut BuilderC
     builder.with(DistantExit::new());
 }
 
-pub fn random_builder(new_depth: i32, rng: &mut RandomNumberGenerator) -> BuilderChain {
-    let mut builder = BuilderChain::new(new_depth);
+pub fn random_builder(new_depth: i32, rng: &mut RandomNumberGenerator, width: i32, height: i32) -> BuilderChain {
+    let mut builder = BuilderChain::new(new_depth, width, height);
     let type_roll = rng.roll_dice(1, 2);
     match type_roll {
         1 => random_room_builder(rng, &mut builder),
@@ -273,23 +293,3 @@ pub fn random_builder(new_depth: i32, rng: &mut RandomNumberGenerator) -> Builde
     builder
 }
 
-
-fn random_start_position(rng: &mut RandomNumberGenerator) -> (XStart, YStart) {
-    let x;
-    let xroll = rng.roll_dice(1, 3);
-    match xroll {
-        1 => x = XStart::LEFT,
-        2 => x = XStart::CENTER,
-        _ => x = XStart::RIGHT
-    }
-
-    let y;
-    let yroll = rng.roll_dice(1, 3);
-    match yroll {
-        1 => y = YStart::BOTTOM,
-        2 => y = YStart::CENTER,
-        _ => y = YStart::TOP
-    }
-
-    (x, y)
-}

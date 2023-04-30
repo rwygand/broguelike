@@ -1,9 +1,9 @@
-use {VirtualKeyCode, Point};
+use bracket_lib::prelude::{VirtualKeyCode, BTerm, Point, to_cp437};
 use specs::prelude::*;
 use std::cmp::{max, min};
-use super::{State, Map, RunState, CombatStats, gamelog::GameLog, TileType };
-use bracket_lib::prelude::*;
-use crate::components::*;
+use super::{Position, Player, Viewshed, State, Map, RunState, CombatStats, WantsToMelee, Item,
+    gamelog::GameLog, WantsToPickupItem, TileType, Monster, HungerClock, HungerState,
+    EntityMoved, Door, BlocksTile, BlocksVisibility, Renderable};
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
@@ -41,8 +41,8 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         }
 
         if !map.blocked[destination_idx] {
-            pos.x = min(79 , max(0, pos.x + delta_x));
-            pos.y = min(49, max(0, pos.y + delta_y));
+            pos.x = min(map.width-1 , max(0, pos.x + delta_x));
+            pos.y = min(map.height-1, max(0, pos.y + delta_y));
             entity_moved.insert(entity, EntityMoved{}).expect("Unable to insert marker");
 
             viewshed.dirty = true;

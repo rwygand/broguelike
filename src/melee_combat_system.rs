@@ -1,9 +1,9 @@
 use specs::prelude::*;
 use super::{CombatStats, WantsToMelee, Name, SufferDamage, gamelog::GameLog, MeleePowerBonus, DefenseBonus, Equipped,
     particle_system::ParticleBuilder, Position, HungerClock, HungerState};
+use bracket_lib::prelude::*;
 
 pub struct MeleeCombatSystem {}
-use bracket_lib::prelude::*;
 
 impl<'a> System<'a> for MeleeCombatSystem {
     #[allow(clippy::type_complexity)]

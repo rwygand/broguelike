@@ -1,6 +1,5 @@
-use bracket_lib::prelude::*;
-use crate::map_builders::MetaMapBuilder;
-use super::{InitialMapBuilder, BuilderMap, TileType, Position, paint, Symmetry};
+use super::{InitialMapBuilder, MetaMapBuilder, BuilderMap, TileType, Position, paint, Symmetry};
+use bracket_lib::prelude::RandomNumberGenerator;
 
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]

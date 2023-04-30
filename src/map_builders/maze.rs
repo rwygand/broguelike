@@ -1,5 +1,5 @@
-use bracket_lib::prelude::*;
-use super::{Map, InitialMapBuilder, BuilderMap, TileType};
+use super::{Map,  InitialMapBuilder, BuilderMap, TileType};
+use bracket_lib::prelude::RandomNumberGenerator;
 
 pub struct MazeBuilder {}
 

@@ -1,6 +1,5 @@
+use super::{InitialMapBuilder, MetaMapBuilder, BuilderMap, TileType, Position, Symmetry, paint};
 use bracket_lib::prelude::*;
-use crate::map_builders::MetaMapBuilder;
-use super::{InitialMapBuilder, BuilderMap, TileType, Position, Symmetry, paint};
 
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]
@@ -40,16 +39,6 @@ impl DLABuilder {
     }
 
     #[allow(dead_code)]
-    pub fn heavy_erosion() -> Box<DLABuilder> {
-        Box::new(DLABuilder{
-            algorithm: DLAAlgorithm::WalkInwards,
-            brush_size: 2,
-            symmetry: Symmetry::None,
-            floor_percent: 0.35,
-        })
-    }
-
-    #[allow(dead_code)]
     pub fn walk_inwards() -> Box<DLABuilder> {
         Box::new(DLABuilder{
             algorithm: DLAAlgorithm::WalkInwards,
@@ -66,6 +55,16 @@ impl DLABuilder {
             brush_size: 2,
             symmetry: Symmetry::None,
             floor_percent: 0.25,
+        })
+    }
+
+    #[allow(dead_code)]
+    pub fn heavy_erosion() -> Box<DLABuilder> {
+        Box::new(DLABuilder{
+            algorithm: DLAAlgorithm::WalkInwards,
+            brush_size: 2,
+            symmetry: Symmetry::None,
+            floor_percent: 0.35,
         })
     }
 

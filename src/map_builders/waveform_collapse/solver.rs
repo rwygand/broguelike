@@ -81,7 +81,7 @@ impl Solver {
         neighbors
     }
 
-    pub fn iteration(&mut self, map: &mut Map, rng : &mut RandomNumberGenerator) -> bool {
+    pub fn iteration(&mut self, map: &mut Map, rng : &mut super::RandomNumberGenerator) -> bool {
         if self.remaining.is_empty() { return true; }
 
         // Populate the neighbor count of the remaining list
@@ -198,7 +198,7 @@ impl Solver {
             }
 
             if possible_options.is_empty() {
-                log("Oh no! It's not possible!");
+                console::log("Oh no! It's not possible!");
                 self.possible = false;
                 return true;
             } else {

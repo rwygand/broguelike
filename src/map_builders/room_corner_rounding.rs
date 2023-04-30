@@ -1,5 +1,6 @@
 use super::{MetaMapBuilder, BuilderMap, TileType, Rect};
-use bracket_lib::prelude::*;
+use bracket_lib::prelude::RandomNumberGenerator;
+
 pub struct RoomCornerRounder {}
 
 impl MetaMapBuilder for RoomCornerRounder {
