@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::{Map, TileType};
 
 #[derive(PartialEq, Copy, Clone)]
+#[allow(dead_code)]
 pub enum Symmetry { None, Horizontal, Vertical, Both }
 
 pub fn apply_room_to_map(map : &mut Map, room : &Rect) {
