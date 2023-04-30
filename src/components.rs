@@ -130,28 +130,51 @@ pub struct WantsToRemoveItem {
     pub item : Entity
 }
 
-#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
-pub enum EquipmentSlot { Melee, Shield }
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
+pub enum EquipmentSlot { Melee, Shield, Head, Torso, Legs, Feet, Hands }
 
-#[derive(Component, Serialize, Deserialize, Clone)]
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct Equippable {
     pub slot : EquipmentSlot
 }
 
-#[derive(Component, ConvertSaveload, Clone)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct Equipped {
     pub owner : Entity,
     pub slot : EquipmentSlot
 }
 
-#[derive(Component, ConvertSaveload, Clone)]
-pub struct MeleePowerBonus {
-    pub power : i32
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
+pub enum WeaponAttribute { Might, Quickness }
+
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
+pub struct MeleeWeapon {
+    pub attribute : WeaponAttribute,
+    pub damage_n_dice : i32,
+    pub damage_die_type : i32,
+    pub damage_bonus : i32,
+    pub hit_bonus : i32
 }
 
-#[derive(Component, ConvertSaveload, Clone)]
-pub struct DefenseBonus {
-    pub defense : i32
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
+pub struct Wearable {
+    pub armor_class : f32,
+    pub slot : EquipmentSlot
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct NaturalAttack {
+    pub name : String,
+    pub damage_n_dice : i32,
+    pub damage_die_type : i32,
+    pub damage_bonus : i32,
+    pub hit_bonus : i32
+}
+
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
+pub struct NaturalAttackDefense {
+    pub armor_class : Option<i32>,
+    pub attacks : Vec<NaturalAttack>
 }
 
 #[derive(Component, Serialize, Deserialize, Clone)]
