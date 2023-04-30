@@ -36,6 +36,8 @@ pub mod trigger_system;
 pub mod map_builders;
 pub mod camera;
 pub mod raws;
+mod bystander_ai_system;
+
 #[macro_use]
 extern crate lazy_static;
 
@@ -74,6 +76,8 @@ impl State {
         mob.run_now(&self.ecs);
         let mut mapindex = MapIndexingSystem{};
         mapindex.run_now(&self.ecs);
+        let mut bystander = bystander_ai_system::BystanderAI{};
+        bystander.run_now(&self.ecs);
         let mut triggers = trigger_system::TriggerSystem{};
         triggers.run_now(&self.ecs);
         let mut melee = MeleeCombatSystem{};
@@ -455,6 +459,7 @@ fn main() -> BError {
     gs.ecs.register::<Door>();
     gs.ecs.register::<Bystander>();
     gs.ecs.register::<Vendor>();
+    gs.ecs.register::<Quips>();
 
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
