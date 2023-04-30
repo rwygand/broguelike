@@ -1,4 +1,5 @@
 use bracket_lib::prelude::*;
+use crate::map_builders::MetaMapBuilder;
 use super::{InitialMapBuilder, BuilderMap, TileType, Position, paint, Symmetry};
 
 #[derive(PartialEq, Copy, Clone)]
@@ -18,6 +19,13 @@ pub struct DrunkardsWalkBuilder {
 }
 
 impl InitialMapBuilder for DrunkardsWalkBuilder {
+    #[allow(dead_code)]
+    fn build_map(&mut self, rng: &mut RandomNumberGenerator, build_data : &mut BuilderMap) {
+        self.build(rng, build_data);
+    }
+}
+
+impl MetaMapBuilder for DrunkardsWalkBuilder {
     #[allow(dead_code)]
     fn build_map(&mut self, rng: &mut RandomNumberGenerator, build_data : &mut BuilderMap) {
         self.build(rng, build_data);

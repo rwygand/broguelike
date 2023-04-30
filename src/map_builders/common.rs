@@ -1,7 +1,5 @@
 use super::{Map, Rect, TileType};
 use std::cmp::{max, min};
-use std::collections::HashMap;
-use bracket_lib::prelude::*;
 
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]

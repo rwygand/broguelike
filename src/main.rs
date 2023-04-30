@@ -412,6 +412,7 @@ impl State {
 fn main() -> BError {
     let mut context = BTermBuilder::simple80x50()
         .with_title("Roguelike Tutorial")
+        .with_tile_dimensions(16, 16)
         .build()?;
     context.with_post_scanlines(true);
     let mut gs = State {

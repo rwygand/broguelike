@@ -1,4 +1,5 @@
 use bracket_lib::prelude::*;
+use crate::map_builders::MetaMapBuilder;
 use super::{InitialMapBuilder, BuilderMap, TileType, Position, Symmetry, paint};
 
 #[derive(PartialEq, Copy, Clone)]
@@ -20,6 +21,13 @@ impl InitialMapBuilder for DLABuilder {
     }
 }
 
+impl MetaMapBuilder for DLABuilder {
+    #[allow(dead_code)]
+    fn build_map(&mut self, rng: &mut RandomNumberGenerator, build_data : &mut BuilderMap) {
+        self.build(rng, build_data);
+    }
+}
+
 impl DLABuilder {
     #[allow(dead_code)]
     pub fn new() -> Box<DLABuilder> {
@@ -28,6 +36,16 @@ impl DLABuilder {
             brush_size: 2,
             symmetry: Symmetry::None,
             floor_percent: 0.25,
+        })
+    }
+
+    #[allow(dead_code)]
+    pub fn heavy_erosion() -> Box<DLABuilder> {
+        Box::new(DLABuilder{
+            algorithm: DLAAlgorithm::WalkInwards,
+            brush_size: 2,
+            symmetry: Symmetry::None,
+            floor_percent: 0.35,
         })
     }
 
