@@ -1,24 +1,13 @@
-use super::{Map, Rect, TileType, Position, spawner, SHOW_MAPGEN_VISUALIZER};
 mod simple_map;
-use simple_map::SimpleMapBuilder;
 mod bsp_dungeon;
-use bsp_dungeon::BspDungeonBuilder;
 mod bsp_interior;
-use bsp_interior::BspInteriorBuilder;
 mod cellular_automata;
-use cellular_automata::CellularAutomataBuilder;
 mod drunkard;
-use drunkard::*;
 mod maze;
-use maze::*;
 mod dla;
-use dla::*;
 mod common;
-use common::*;
 mod voronoi;
-use voronoi::*;
 mod waveform_collapse;
-use waveform_collapse::*;
 mod prefab_builder;
 mod room_based_spawner;
 mod room_based_starting_position;
@@ -33,29 +22,47 @@ mod rooms_corridors_dogleg;
 mod rooms_corridors_bsp;
 mod room_sorter;
 mod room_draw;
+mod rooms_corridors_nearest;
+mod rooms_corridors_lines;
+mod room_corridor_spawner;
 
+use super::{Map, Rect, TileType, Position, spawner, SHOW_MAPGEN_VISUALIZER};
+use waveform_collapse::*;
+use maze::*;
+use dla::*;
+use voronoi::*;
+use common::*;
+use drunkard::*;
+use cellular_automata::CellularAutomataBuilder;
+use bsp_interior::BspInteriorBuilder;
+use bsp_dungeon::BspDungeonBuilder;
+use simple_map::SimpleMapBuilder;
 use prefab_builder::*;
 use specs::prelude::*;
 use bracket_lib::prelude::*;
 use room_based_spawner::RoomBasedSpawner;
-use crate::map_builders::area_starting_points::{AreaStartingPosition, XStart, YStart};
-use crate::map_builders::cull_unreachable::CullUnreachable;
-use crate::map_builders::distant_exit::DistantExit;
-use crate::map_builders::room_based_stairs::RoomBasedStairs;
-use crate::map_builders::room_based_starting_position::RoomBasedStartingPosition;
-use crate::map_builders::room_corner_rounding::RoomCornerRounder;
-use crate::map_builders::room_draw::RoomDrawer;
-use crate::map_builders::room_exploder::RoomExploder;
-use crate::map_builders::room_sorter::{RoomSort, RoomSorter};
-use crate::map_builders::rooms_corridors_bsp::BspCorridors;
-use crate::map_builders::rooms_corridors_dogleg::DoglegCorridors;
-use crate::map_builders::voronoi_spawning::VoronoiSpawning;
+use area_starting_points::{AreaStartingPosition, XStart, YStart};
+use cull_unreachable::CullUnreachable;
+use distant_exit::DistantExit;
+use room_based_stairs::RoomBasedStairs;
+use room_based_starting_position::RoomBasedStartingPosition;
+use room_corner_rounding::RoomCornerRounder;
+use room_draw::RoomDrawer;
+use room_exploder::RoomExploder;
+use room_sorter::{RoomSort, RoomSorter};
+use rooms_corridors_bsp::BspCorridors;
+use rooms_corridors_dogleg::DoglegCorridors;
+use voronoi_spawning::VoronoiSpawning;
+use rooms_corridors_nearest::NearestCorridors;
+use room_corridor_spawner::CorridorSpawner;
+use rooms_corridors_lines::StraightLineCorridors;
 
 pub struct BuilderMap {
     pub spawn_list : Vec<(usize, String)>,
     pub map : Map,
     pub starting_position : Option<Position>,
     pub rooms: Option<Vec<Rect>>,
+    pub corridors: Option<Vec<Vec<usize>>>,
     pub history : Vec<Map>
 }
 
@@ -87,6 +94,7 @@ impl BuilderChain {
                 map: Map::new(new_depth),
                 starting_position: None,
                 rooms: None,
+                corridors: None,
                 history : Vec::new()
             }
         }
@@ -127,7 +135,6 @@ impl BuilderChain {
 
 }
 
-
 pub trait InitialMapBuilder {
     fn build_map(&mut self, rng: &mut RandomNumberGenerator, build_data : &mut BuilderMap);
 }
@@ -158,11 +165,19 @@ fn random_room_builder(rng: &mut RandomNumberGenerator, builder : &mut BuilderCh
 
         builder.with(RoomDrawer::new());
 
-        let corridor_roll = rng.roll_dice(1, 2);
+        let corridor_roll = rng.roll_dice(1, 4);
         match corridor_roll {
             1 => builder.with(DoglegCorridors::new()),
+            2 => builder.with(NearestCorridors::new()),
+            3 => builder.with(StraightLineCorridors::new()),
             _ => builder.with(BspCorridors::new())
         }
+
+        let cspawn_roll = rng.roll_dice(1, 2);
+        if cspawn_roll == 1 {
+            builder.with(CorridorSpawner::new());
+        }
+
 
         let modifier_roll = rng.roll_dice(1, 6);
         match modifier_roll {
