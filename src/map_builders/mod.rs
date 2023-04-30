@@ -25,6 +25,7 @@ mod room_draw;
 mod rooms_corridors_nearest;
 mod rooms_corridors_lines;
 mod room_corridor_spawner;
+mod door_placement;
 
 use super::{Map, Rect, TileType, Position, spawner, SHOW_MAPGEN_VISUALIZER};
 use waveform_collapse::*;
@@ -56,6 +57,7 @@ use voronoi_spawning::VoronoiSpawning;
 use rooms_corridors_nearest::NearestCorridors;
 use room_corridor_spawner::CorridorSpawner;
 use rooms_corridors_lines::StraightLineCorridors;
+use crate::map_builders::door_placement::DoorPlacement;
 
 pub struct BuilderMap {
     pub spawn_list : Vec<(usize, String)>,
@@ -251,12 +253,21 @@ pub fn random_builder(new_depth: i32, rng: &mut RandomNumberGenerator) -> Builde
 
     if rng.roll_dice(1, 3)==1 {
         builder.with(WaveformCollapseBuilder::new());
+
+        // Now set the start to a random starting area
+        let (start_x, start_y) = random_start_position(rng);
+        builder.with(AreaStartingPosition::new(start_x, start_y));
+
+        // Setup an exit and spawn mobs
+        builder.with(VoronoiSpawning::new());
+        builder.with(DistantExit::new());
     }
 
     if rng.roll_dice(1, 20)==1 {
         builder.with(PrefabBuilder::sectional(prefab_builder::prefab_sections::UNDERGROUND_FORT));
     }
 
+    builder.with(DoorPlacement::new());
     builder.with(PrefabBuilder::vaults());
 
     builder
