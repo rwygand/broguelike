@@ -401,8 +401,9 @@ impl State {
 }
 
 fn main() -> BError {
-    let mut context = BTermBuilder::simple80x50()
-        .with_title("Roguelike Tutorial")
+    let mut context = BTermBuilder::simple(80, 60)
+        .unwrap()
+        .with_title("Broguelike")
         .with_tile_dimensions(16, 16)
         .with_fps_cap(30.)
         .build()?;
@@ -463,7 +464,7 @@ fn main() -> BError {
 
     raws::load_raws();
 
-    gs.ecs.insert(Map::new(1, 64, 64));
+    gs.ecs.insert(Map::new(1, 64, 64, "New Map"));
     gs.ecs.insert(Point::new(0, 0));
     gs.ecs.insert(RandomNumberGenerator::new());
     let player_entity = spawner::player(&mut gs.ecs, 0, 0);

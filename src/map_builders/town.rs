@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use bracket_lib::prelude::{RandomNumberGenerator, DistanceAlg, Point, a_star_search};
 
 pub fn town_builder(new_depth: i32, _rng: &mut RandomNumberGenerator, width: i32, height: i32) -> BuilderChain {
-    let mut chain = BuilderChain::new(new_depth, width, height);
+    let mut chain = BuilderChain::new(new_depth, width, height, "Avendale-upon-Hynne");
     chain.start_with(TownBuilder::new());
     chain
 }

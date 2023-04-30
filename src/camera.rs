@@ -2,9 +2,10 @@ use specs::prelude::*;
 use super::{Map,TileType,Position,Renderable,Hidden};
 use bracket_lib::prelude::*;
 
-pub fn get_screen_bounds(ecs: &World, ctx : &mut BTerm) -> (i32, i32, i32, i32) {
+pub fn get_screen_bounds(ecs: &World, _ctx:  &mut BTerm) -> (i32, i32, i32, i32) {
     let player_pos = ecs.fetch::<Point>();
-    let (x_chars, y_chars) = ctx.get_char_size();
+    //let (x_chars, y_chars) = ctx.get_char_size();
+    let (x_chars, y_chars) = (48, 44);
 
     let center_x = (x_chars / 2) as i32;
     let center_y = (y_chars / 2) as i32;
@@ -17,7 +18,7 @@ pub fn get_screen_bounds(ecs: &World, ctx : &mut BTerm) -> (i32, i32, i32, i32) 
     (min_x, max_x, min_y, max_y)
 }
 
-const SHOW_BOUNDARIES : bool = true;
+const SHOW_BOUNDARIES : bool = false;
 
 pub fn render_camera(ecs: &World, ctx : &mut BTerm) {
     let map = ecs.fetch::<Map>();
@@ -36,10 +37,10 @@ pub fn render_camera(ecs: &World, ctx : &mut BTerm) {
                 let idx = map.xy_idx(tx, ty);
                 if map.revealed_tiles[idx] {
                     let (glyph, fg, bg) = get_tile_glyph(idx, &*map);
-                    ctx.set(x, y, fg, bg, glyph);
+                    ctx.set(x+1, y+1, fg, bg, glyph);
                 }
             } else if SHOW_BOUNDARIES {
-                ctx.set(x, y, RGB::named(GRAY), RGB::named(BLACK), to_cp437('·'));
+                ctx.set(x+1, y+1, RGB::named(GRAY), RGB::named(BLACK), to_cp437('·'));
             }
             x += 1;
         }
@@ -60,7 +61,7 @@ pub fn render_camera(ecs: &World, ctx : &mut BTerm) {
             let entity_screen_x = pos.x - min_x;
             let entity_screen_y = pos.y - min_y;
             if entity_screen_x > 0 && entity_screen_x < map_width && entity_screen_y > 0 && entity_screen_y < map_height {
-                ctx.set(entity_screen_x, entity_screen_y, render.fg, render.bg, render.glyph);
+                ctx.set(entity_screen_x + 1, entity_screen_y + 1, render.fg, render.bg, render.glyph);
             }
         }
     }
@@ -107,7 +108,7 @@ fn get_tile_glyph(idx: usize, map : &Map) -> (FontCharType, RGB, RGB) {
 
     match map.tiles[idx] {
         TileType::Floor => { glyph = to_cp437('.'); fg = RGB::from_f32(0.0, 0.5, 0.5); }
-        TileType::WoodFloor => { glyph = to_cp437('.'); fg = RGB::named(CHOCOLATE); }
+        TileType::WoodFloor => { glyph = to_cp437('░'); fg = RGB::named(CHOCOLATE); }
         TileType::Wall => {
             let x = idx as i32 % map.width;
             let y = idx as i32 / map.width;
@@ -116,11 +117,11 @@ fn get_tile_glyph(idx: usize, map : &Map) -> (FontCharType, RGB, RGB) {
         }
         TileType::DownStairs => { glyph = to_cp437('>'); fg = RGB::from_f32(0., 1.0, 1.0); }
         TileType::Bridge => { glyph = to_cp437('.'); fg = RGB::named(CHOCOLATE); }
-        TileType::Road => { glyph = to_cp437('~'); fg = RGB::named(GRAY); }
+        TileType::Road => { glyph = to_cp437('≡'); fg = RGB::named(GRAY); }
         TileType::Grass => { glyph = to_cp437('"'); fg = RGB::named(GREEN); }
-        TileType::ShallowWater => { glyph = to_cp437('≈'); fg = RGB::named(CYAN); }
-        TileType::DeepWater => { glyph = to_cp437('≈'); fg = RGB::named(NAVY_BLUE); }
-        TileType::Gravel => { glyph = to_cp437(';'); fg = RGB::named(GRAY); }
+        TileType::ShallowWater => { glyph = to_cp437('~'); fg = RGB::named(CYAN); }
+        TileType::DeepWater => { glyph = to_cp437('~'); fg = RGB::named(BLUE); }
+        TileType::Gravel => { glyph = to_cp437(';'); fg = RGB::from_f32(0.5, 0.5, 0.5); }
     }
     if map.bloodstains.contains(&idx) { bg = RGB::from_f32(0.75, 0., 0.); }
     if !map.visible_tiles[idx] {
