@@ -32,6 +32,7 @@ mod room_corner_rounding;
 mod rooms_corridors_dogleg;
 mod rooms_corridors_bsp;
 mod room_sorter;
+mod room_draw;
 
 use prefab_builder::*;
 use specs::prelude::*;
@@ -43,6 +44,7 @@ use crate::map_builders::distant_exit::DistantExit;
 use crate::map_builders::room_based_stairs::RoomBasedStairs;
 use crate::map_builders::room_based_starting_position::RoomBasedStartingPosition;
 use crate::map_builders::room_corner_rounding::RoomCornerRounder;
+use crate::map_builders::room_draw::RoomDrawer;
 use crate::map_builders::room_exploder::RoomExploder;
 use crate::map_builders::room_sorter::{RoomSort, RoomSorter};
 use crate::map_builders::rooms_corridors_bsp::BspCorridors;
@@ -154,6 +156,8 @@ fn random_room_builder(rng: &mut RandomNumberGenerator, builder : &mut BuilderCh
             _ => builder.with(RoomSorter::new(RoomSort::CENTRAL)),
         }
 
+        builder.with(RoomDrawer::new());
+
         let corridor_roll = rng.roll_dice(1, 2);
         match corridor_roll {
             1 => builder.with(DoglegCorridors::new()),
@@ -222,7 +226,6 @@ fn random_shape_builder(rng: &mut RandomNumberGenerator, builder : &mut BuilderC
     builder.with(DistantExit::new());
 }
 
-
 pub fn random_builder(new_depth: i32, rng: &mut RandomNumberGenerator) -> BuilderChain {
     let mut builder = BuilderChain::new(new_depth);
     let type_roll = rng.roll_dice(1, 2);
@@ -243,6 +246,7 @@ pub fn random_builder(new_depth: i32, rng: &mut RandomNumberGenerator) -> Builde
 
     builder
 }
+
 
 fn random_start_position(rng: &mut RandomNumberGenerator) -> (XStart, YStart) {
     let x;
