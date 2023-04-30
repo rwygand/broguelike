@@ -335,14 +335,8 @@ impl State {
         self.generate_world_map(current_depth + 1);
 
         // Notify the player and give them some health
-        let player_entity = self.ecs.fetch::<Entity>();
         let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
         gamelog.entries.push("You descend to the next level, and take a moment to heal.".to_string());
-        let mut player_health_store = self.ecs.write_storage::<CombatStats>();
-        let player_health = player_health_store.get_mut(*player_entity);
-        if let Some(player_health) = player_health {
-            player_health.hp = i32::max(player_health.hp, player_health.max_hp / 2);
-        }
     }
 
     fn game_over_cleanup(&mut self) {
@@ -427,7 +421,6 @@ fn main() -> BError {
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
     gs.ecs.register::<BlocksTile>();
-    gs.ecs.register::<CombatStats>();
     gs.ecs.register::<WantsToMelee>();
     gs.ecs.register::<SufferDamage>();
     gs.ecs.register::<Item>();
@@ -463,6 +456,7 @@ fn main() -> BError {
     gs.ecs.register::<Quips>();
     gs.ecs.register::<Attributes>();
     gs.ecs.register::<Skills>();
+    gs.ecs.register::<Pools>();
 
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 

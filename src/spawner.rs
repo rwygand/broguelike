@@ -3,7 +3,7 @@ use specs::prelude::*;
 use super::{components::*, raws::*, TileType, Map, random_table::RandomTable, Rect };
 use specs::saveload::{MarkedBuilder, SimpleMarker};
 use std::collections::HashMap;
-use crate::gamesystem::attr_bonus;
+use crate::gamesystem::{attr_bonus, mana_at_level, player_hp_at_level};
 use crate::raws::SpawnType;
 
 /// Spawns the player and returns his/her entity object.
@@ -25,7 +25,6 @@ pub fn player(ecs : &mut World, player_x : i32, player_y : i32) -> Entity {
         .with(Player{})
         .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
         .with(Name{name: "Player".to_string() })
-        .with(CombatStats{ max_hp: 30, hp: 30, defense: 2, power: 5 })
         .with(HungerClock{ state: HungerState::WellFed, duration: 20 })
         .with(Attributes{
             might: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
@@ -34,6 +33,18 @@ pub fn player(ecs : &mut World, player_x : i32, player_y : i32) -> Entity {
             intelligence: Attribute{ base: 11, modifiers: 0, bonus: attr_bonus(11) },
         })
         .with(skills)
+        .with(Pools{
+            hit_points : Pool{
+                current: player_hp_at_level(11, 1),
+                max: player_hp_at_level(11, 1)
+            },
+            mana: Pool{
+                current: mana_at_level(11, 1),
+                max: mana_at_level(11, 1)
+            },
+            xp: 0,
+            level: 1
+        })
         .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }

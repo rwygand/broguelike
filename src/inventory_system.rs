@@ -1,6 +1,6 @@
 use specs::prelude::*;
 use super::{WantsToPickupItem, Name, InBackpack, Position, gamelog::GameLog, WantsToUseItem,
-    Consumable, ProvidesHealing, CombatStats, WantsToDropItem, InflictsDamage, Map, SufferDamage,
+    Consumable, ProvidesHealing, Pools, WantsToDropItem, InflictsDamage, Map, SufferDamage,
     AreaOfEffect, Confusion, Equippable, Equipped, WantsToRemoveItem, particle_system::ParticleBuilder,
     ProvidesFood, HungerClock, HungerState, MagicMapper, RunState};
 use bracket_lib::prelude::*;
@@ -46,7 +46,7 @@ impl<'a> System<'a> for ItemUseSystem {
                         ReadStorage<'a, Consumable>,
                         ReadStorage<'a, ProvidesHealing>,
                         ReadStorage<'a, InflictsDamage>,
-                        WriteStorage<'a, CombatStats>,
+                        WriteStorage<'a, Pools>,
                         WriteStorage<'a, SufferDamage>,
                         ReadStorage<'a, AreaOfEffect>,
                         WriteStorage<'a, Confusion>,
@@ -169,7 +169,7 @@ impl<'a> System<'a> for ItemUseSystem {
                     for target in targets.iter() {
                         let stats = combat_stats.get_mut(*target);
                         if let Some(stats) = stats {
-                            stats.hp = i32::min(stats.max_hp, stats.hp + healer.heal_amount);
+                            stats.hit_points.current = i32::min(stats.hit_points.max, stats.hit_points.current + healer.heal_amount);
                             if entity == *player_entity {
                                 gamelog.entries.push(format!("You use the {}, healing {} hp.", names.get(useitem.item).unwrap().name, healer.heal_amount));
                             }

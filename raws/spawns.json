@@ -180,12 +180,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "vendor",
       "attributes" : {
@@ -204,12 +198,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "vendor",
       "attributes" : {}
@@ -223,12 +211,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "bystander",
       "attributes" : {}
@@ -242,12 +224,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "bystander",
       "attributes" : {}
@@ -262,12 +238,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "bystander",
       "attributes" : {}
@@ -281,12 +251,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "vendor",
       "attributes" : {}
@@ -301,12 +265,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "vendor",
       "attributes" : {}
@@ -321,12 +279,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "vendor",
       "attributes" : {}
@@ -340,12 +292,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "bystander",
       "attributes" : {}
@@ -359,12 +305,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "bystander",
       "attributes" : {}
@@ -378,12 +318,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "bystander",
       "quips" : [ "Lovely day, eh?", "Nice weather", "Hello" ],
@@ -399,12 +333,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "bystander",
       "quips" : [ "They're biting today!", "I caught something, but it wasn't a fish!", "Looks like rain" ],
@@ -420,12 +348,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "bystander",
       "quips" : [ "Arrr", "Grog!", "Booze!" ],
@@ -441,12 +363,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 4,
       "ai" : "bystander",
       "quips" : [ "Hic", "Need... more... booze!", "Spare a copper?" ],
@@ -461,12 +377,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 16,
-        "hp" : 16,
-        "defense" : 1,
-        "power" : 4
-      },
       "vision_range" : 8,
       "ai" : "melee",
       "attributes" : {}
@@ -480,15 +390,16 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 2,
-        "hp" : 2,
-        "defense" : 1,
-        "power" : 3
-      },
       "vision_range" : 8,
       "ai" : "melee",
-      "attributes" : {}
+      "attributes" : {
+        "Might" : 3,
+        "Fitness" : 3
+      },
+      "skills" : {
+        "Melee" : -1,
+        "Defense" : -1
+      }
     },
     {
       "name" : "Kobold",
@@ -499,12 +410,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 4,
-        "hp" : 4,
-        "defense" : 0,
-        "power" : 2
-      },
       "vision_range" : 4,
       "ai" : "melee",
       "attributes" : {}
@@ -518,12 +423,6 @@
         "order" : 1
       },
       "blocks_tile" : true,
-      "stats" : {
-        "max_hp" : 8,
-        "hp" : 8,
-        "defense" : 1,
-        "power" : 3
-      },
       "vision_range" : 8,
       "ai" : "melee",
       "attributes" : {}
