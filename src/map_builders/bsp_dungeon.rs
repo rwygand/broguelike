@@ -1,9 +1,6 @@
+use super::{MapBuilder, Map, Rect, apply_room_to_map,
+    TileType, Position, spawner, SHOW_MAPGEN_VISUALIZER, draw_corridor};
 use bracket_lib::prelude::*;
-use super::{MapBuilder, Map, Position};
-use RandomNumberGenerator;
-use specs::prelude::*;
-use crate::{SHOW_MAPGEN_VISUALIZER, spawner, TileType};
-use crate::map_builders::common::apply_room_to_map;
 
 pub struct BspDungeonBuilder {
     map : Map,
@@ -11,20 +8,11 @@ pub struct BspDungeonBuilder {
     depth: i32,
     rooms: Vec<Rect>,
     history: Vec<Map>,
-    rects: Vec<Rect>
+    rects: Vec<Rect>,
+    spawn_list: Vec<(usize, String)>
 }
 
 impl MapBuilder for BspDungeonBuilder {
-    fn build_map(&mut self)  {
-        self.build();
-    }
-
-    fn spawn_entities(&mut self, ecs : &mut World) {
-        for room in self.rooms.iter().skip(1) {
-            spawner::spawn_room(ecs, room, self.depth);
-        }
-    }
-
     fn get_map(&self) -> Map {
         self.map.clone()
     }
@@ -35,6 +23,14 @@ impl MapBuilder for BspDungeonBuilder {
 
     fn get_snapshot_history(&self) -> Vec<Map> {
         self.history.clone()
+    }
+
+    fn build_map(&mut self)  {
+        self.build();
+    }
+
+    fn get_spawn_list(&self) -> &Vec<(usize, String)> {
+        &self.spawn_list
     }
 
     fn take_snapshot(&mut self) {
@@ -49,6 +45,7 @@ impl MapBuilder for BspDungeonBuilder {
 }
 
 impl BspDungeonBuilder {
+    #[allow(dead_code)]
     pub fn new(new_depth : i32) -> BspDungeonBuilder {
         BspDungeonBuilder{
             map : Map::new(new_depth),
@@ -56,7 +53,8 @@ impl BspDungeonBuilder {
             depth : new_depth,
             rooms: Vec::new(),
             history: Vec::new(),
-            rects: Vec::new()
+            rects: Vec::new(),
+            spawn_list: Vec::new()
         }
     }
 
@@ -64,7 +62,7 @@ impl BspDungeonBuilder {
         let mut rng = RandomNumberGenerator::new();
 
         self.rects.clear();
-        self.rects.push( Rect::with_size(2, 2, self.map.width-5, self.map.height-5) ); // Start with a single map-sized rectangle
+        self.rects.push( Rect::new(2, 2, self.map.width-5, self.map.height-5) ); // Start with a single map-sized rectangle
         let first_room = self.rects[0];
         self.add_subrects(first_room); // Divide the first room
 
@@ -96,19 +94,24 @@ impl BspDungeonBuilder {
             let start_y = room.y1 + (rng.roll_dice(1, i32::abs(room.y1 - room.y2))-1);
             let end_x = next_room.x1 + (rng.roll_dice(1, i32::abs(next_room.x1 - next_room.x2))-1);
             let end_y = next_room.y1 + (rng.roll_dice(1, i32::abs(next_room.y1 - next_room.y2))-1);
-            self.draw_corridor(start_x, start_y, end_x, end_y);
+            draw_corridor(&mut self.map, start_x, start_y, end_x, end_y);
             self.take_snapshot();
         }
 
         // Don't forget the stairs
         let stairs = self.rooms[self.rooms.len()-1].center();
-        let stairs_idx = self.map.xy_idx(stairs.x, stairs.y);
-        self.map.tiles[stairs_idx] = TileType::StairsDown;
+        let stairs_idx = self.map.xy_idx(stairs.0, stairs.1);
+        self.map.tiles[stairs_idx] = TileType::DownStairs;
         self.take_snapshot();
 
         // Set player start
         let start = self.rooms[0].center();
-        self.starting_position = Position::from_point(start);
+        self.starting_position = Position{ x: start.0, y: start.1 };
+
+        // Spawn some entities
+        for room in self.rooms.iter().skip(1) {
+            spawner::spawn_room(&self.map, &mut rng, room, self.depth, &mut self.spawn_list);
+        }
     }
 
     fn add_subrects(&mut self, rect : Rect) {
@@ -117,10 +120,10 @@ impl BspDungeonBuilder {
         let half_width = i32::max(width / 2, 1);
         let half_height = i32::max(height / 2, 1);
 
-        self.rects.push(Rect::with_size( rect.x1, rect.y1, half_width, half_height ));
-        self.rects.push(Rect::with_size( rect.x1, rect.y1 + half_height, half_width, half_height ));
-        self.rects.push(Rect::with_size( rect.x1 + half_width, rect.y1, half_width, half_height ));
-        self.rects.push(Rect::with_size( rect.x1 + half_width, rect.y1 + half_height, half_width, half_height ));
+        self.rects.push(Rect::new( rect.x1, rect.y1, half_width, half_height ));
+        self.rects.push(Rect::new( rect.x1, rect.y1 + half_height, half_width, half_height ));
+        self.rects.push(Rect::new( rect.x1 + half_width, rect.y1, half_width, half_height ));
+        self.rects.push(Rect::new( rect.x1 + half_width, rect.y1 + half_height, half_width, half_height ));
     }
 
     fn get_random_rect(&mut self, rng : &mut RandomNumberGenerator) -> Rect {
@@ -171,25 +174,4 @@ impl BspDungeonBuilder {
 
         can_build
     }
-
-    fn draw_corridor(&mut self, x1:i32, y1:i32, x2:i32, y2:i32) {
-        let mut x = x1;
-        let mut y = y1;
-
-        while x != x2 || y != y2 {
-            if x < x2 {
-                x += 1;
-            } else if x > x2 {
-                x -= 1;
-            } else if y < y2 {
-                y += 1;
-            } else if y > y2 {
-                y -= 1;
-            }
-
-            let idx = self.map.xy_idx(x, y);
-            self.map.tiles[idx] = TileType::Floor;
-        }
-    }
 }
-

@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use super::{MapBuilder, Map,
+    TileType, Position, spawner, SHOW_MAPGEN_VISUALIZER,
+    remove_unreachable_areas_returning_most_distant, generate_voronoi_spawn_regions};
 use bracket_lib::prelude::*;
-use crate::{Map, Position, SHOW_MAPGEN_VISUALIZER, TileType, spawner};
-use super::MapBuilder;
-use specs::World;
+use std::collections::HashMap;
 
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]
@@ -15,20 +15,11 @@ pub struct VoronoiCellBuilder {
     history: Vec<Map>,
     noise_areas : HashMap<i32, Vec<usize>>,
     n_seeds: usize,
-    distance_algorithm: DistanceAlgorithm
+    distance_algorithm: DistanceAlgorithm,
+    spawn_list: Vec<(usize, String)>
 }
 
 impl MapBuilder for VoronoiCellBuilder {
-    fn build_map(&mut self)  {
-        self.build();
-    }
-
-    fn spawn_entities(&mut self, ecs : &mut World) {
-        for area in self.noise_areas.iter() {
-            spawner::spawn_region(ecs, area.1, self.depth);
-        }
-    }
-
     fn get_map(&self) -> Map {
         self.map.clone()
     }
@@ -39,6 +30,14 @@ impl MapBuilder for VoronoiCellBuilder {
 
     fn get_snapshot_history(&self) -> Vec<Map> {
         self.history.clone()
+    }
+
+    fn build_map(&mut self)  {
+        self.build();
+    }
+
+    fn get_spawn_list(&self) -> &Vec<(usize, String)> {
+        &self.spawn_list
     }
 
     fn take_snapshot(&mut self) {
@@ -61,11 +60,13 @@ impl VoronoiCellBuilder {
             depth : new_depth,
             history: Vec::new(),
             noise_areas : HashMap::new(),
-            n_seeds: 0,
-            distance_algorithm: DistanceAlgorithm::Manhattan,
+            n_seeds: 64,
+            distance_algorithm: DistanceAlgorithm::Pythagoras,
+            spawn_list : Vec::new()
         }
     }
 
+    #[allow(dead_code)]
     pub fn pythagoras(new_depth : i32) -> VoronoiCellBuilder {
         VoronoiCellBuilder{
             map : Map::new(new_depth),
@@ -74,10 +75,12 @@ impl VoronoiCellBuilder {
             history: Vec::new(),
             noise_areas : HashMap::new(),
             n_seeds: 64,
-            distance_algorithm: DistanceAlgorithm::Pythagoras
+            distance_algorithm: DistanceAlgorithm::Pythagoras,
+            spawn_list : Vec::new()
         }
     }
 
+    #[allow(dead_code)]
     pub fn manhattan(new_depth : i32) -> VoronoiCellBuilder {
         VoronoiCellBuilder{
             map : Map::new(new_depth),
@@ -86,7 +89,8 @@ impl VoronoiCellBuilder {
             history: Vec::new(),
             noise_areas : HashMap::new(),
             n_seeds: 64,
-            distance_algorithm: DistanceAlgorithm::Manhattan
+            distance_algorithm: DistanceAlgorithm::Manhattan,
+            spawn_list : Vec::new()
         }
     }
 
@@ -158,6 +162,31 @@ impl VoronoiCellBuilder {
                 }
             }
             self.take_snapshot();
+        }
+
+        // Find a starting point; start at the middle and walk left until we find an open tile
+        self.starting_position = Position{ x: self.map.width / 2, y : self.map.height / 2 };
+        let mut start_idx = self.map.xy_idx(self.starting_position.x, self.starting_position.y);
+        while self.map.tiles[start_idx] != TileType::Floor {
+            self.starting_position.x -= 1;
+            start_idx = self.map.xy_idx(self.starting_position.x, self.starting_position.y);
+        }
+        self.take_snapshot();
+
+        // Find all tiles we can reach from the starting point
+        let exit_tile = remove_unreachable_areas_returning_most_distant(&mut self.map, start_idx);
+        self.take_snapshot();
+
+        // Place the stairs
+        self.map.tiles[exit_tile] = TileType::DownStairs;
+        self.take_snapshot();
+
+        // Now we build a noise map for use in spawning entities later
+        self.noise_areas = generate_voronoi_spawn_regions(&self.map, &mut rng);
+
+        // Spawn the entities
+        for area in self.noise_areas.iter() {
+            spawner::spawn_region(&self.map, &mut rng, area.1, self.depth, &mut self.spawn_list);
         }
     }
 }

@@ -1,8 +1,7 @@
-use bracket_lib::prelude::*;
 use specs::prelude::*;
-use crate::{InflictsDamage, SingleActivation, SufferDamage};
-use crate::particle_system::ParticleBuilder;
-use super::{EntityMoved, Position, EntryTrigger, Hidden, Map, Name, gamelog::GameLog};
+use super::{EntityMoved, Position, EntryTrigger, Hidden, Map, Name, gamelog::GameLog,
+    InflictsDamage, particle_system::ParticleBuilder, SufferDamage, SingleActivation};
+use bracket_lib::prelude::*;
 
 pub struct TriggerSystem {}
 

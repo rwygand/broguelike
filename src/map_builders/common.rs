@@ -1,7 +1,7 @@
-use bracket_lib::prelude::*;
+use super::{Map, Rect, TileType};
 use std::cmp::{max, min};
 use std::collections::HashMap;
-use crate::{Map, TileType};
+use bracket_lib::prelude::*;
 
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]
@@ -11,7 +11,9 @@ pub fn apply_room_to_map(map : &mut Map, room : &Rect) {
     for y in room.y1 +1 ..= room.y2 {
         for x in room.x1 + 1 ..= room.x2 {
             let idx = map.xy_idx(x, y);
-            map.tiles[idx] = TileType::Floor;
+            if idx > 0 && idx < ((map.width * map.height)-1) as usize {
+                map.tiles[idx] = TileType::Floor;
+            }
         }
     }
 }
@@ -38,7 +40,7 @@ pub fn apply_vertical_tunnel(map : &mut Map, y1:i32, y2:i32, x:i32) {
 pub fn remove_unreachable_areas_returning_most_distant(map : &mut Map, start_idx : usize) -> usize {
     map.populate_blocked();
     let map_starts : Vec<usize> = vec![start_idx];
-    let dijkstra_map = DijkstraMap::new(map.width as usize, map.height as usize, &map_starts , map, 200.0);
+    let dijkstra_map = DijkstraMap::new(map.width as usize, map.height as usize, &map_starts , map, 1000.0);
     let mut exit_tile = (0, 0.0f32);
     for (i, tile) in map.tiles.iter_mut().enumerate() {
         if *tile == TileType::Floor {
@@ -85,6 +87,26 @@ pub fn generate_voronoi_spawn_regions(map: &Map, rng : &mut RandomNumberGenerato
     }
 
     noise_areas
+}
+
+pub fn draw_corridor(map: &mut Map, x1:i32, y1:i32, x2:i32, y2:i32) {
+    let mut x = x1;
+    let mut y = y1;
+
+    while x != x2 || y != y2 {
+        if x < x2 {
+            x += 1;
+        } else if x > x2 {
+            x -= 1;
+        } else if y < y2 {
+            y += 1;
+        } else if y > y2 {
+            y -= 1;
+        }
+
+        let idx = map.xy_idx(x, y);
+        map.tiles[idx] = TileType::Floor;
+    }
 }
 
 pub fn paint(map: &mut Map, mode: Symmetry, brush_size: i32, x: i32, y:i32) {

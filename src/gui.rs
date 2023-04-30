@@ -1,9 +1,9 @@
-use bracket_lib::prelude::*;
+use { RGB,  Point, VirtualKeyCode };
 use specs::prelude::*;
-use crate::{Equipped, Hidden, HungerClock, HungerState};
-use crate::rex_assets::RexAssets;
 use super::{CombatStats, Player, gamelog::GameLog, Map, Name, Position, State, InBackpack,
-    Viewshed, RunState};
+    Viewshed, RunState, Equipped, HungerClock, HungerState, rex_assets::RexAssets,
+    Hidden };
+use bracket_lib::prelude::*;
 
 pub fn draw_ui(ecs: &World, ctx : &mut BTerm) {
     ctx.draw_box(0, 43, 79, 6, RGB::named(WHITE), RGB::named(BLACK));
@@ -25,16 +25,17 @@ pub fn draw_ui(ecs: &World, ctx : &mut BTerm) {
         }
     }
 
+    let map = ecs.fetch::<Map>();
+    let depth = format!("Depth: {}", map.depth);
+    ctx.print_color(2, 43, RGB::named(YELLOW), RGB::named(BLACK), &depth);
+
+
     let log = ecs.fetch::<GameLog>();
     let mut y = 44;
     for s in log.entries.iter().rev() {
         if y < 49 { ctx.print(2, y, s); }
         y += 1;
     }
-
-    let map = ecs.fetch::<Map>();
-    let depth = format!("Depth: {}", map.depth);
-    ctx.print_color(2, 43, RGB::named(YELLOW), RGB::named(BLACK), &depth);
 
     // Draw mouse cursor
     let mouse_pos = ctx.mouse_pos();
@@ -186,6 +187,50 @@ pub fn drop_item_menu(gs : &mut State, ctx : &mut BTerm) -> (ItemMenuResult, Opt
     }
 }
 
+pub fn remove_item_menu(gs : &mut State, ctx : &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+    let player_entity = gs.ecs.fetch::<Entity>();
+    let names = gs.ecs.read_storage::<Name>();
+    let backpack = gs.ecs.read_storage::<Equipped>();
+    let entities = gs.ecs.entities();
+
+    let inventory = (&backpack, &names).join().filter(|item| item.0.owner == *player_entity );
+    let count = inventory.count();
+
+    let mut y = (25 - (count / 2)) as i32;
+    ctx.draw_box(15, y-2, 31, (count+3) as i32, RGB::named(WHITE), RGB::named(BLACK));
+    ctx.print_color(18, y-2, RGB::named(YELLOW), RGB::named(BLACK), "Remove Which Item?");
+    ctx.print_color(18, y+count as i32+1, RGB::named(YELLOW), RGB::named(BLACK), "ESCAPE to cancel");
+
+    let mut equippable : Vec<Entity> = Vec::new();
+    let mut j = 0;
+    for (entity, _pack, name) in (&entities, &backpack, &names).join().filter(|item| item.1.owner == *player_entity ) {
+        ctx.set(17, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437('('));
+        ctx.set(18, y, RGB::named(YELLOW), RGB::named(BLACK), 97+j as FontCharType);
+        ctx.set(19, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437(')'));
+
+        ctx.print(21, y, &name.name.to_string());
+        equippable.push(entity);
+        y += 1;
+        j += 1;
+    }
+
+    match ctx.key {
+        None => (ItemMenuResult::NoResponse, None),
+        Some(key) => {
+            match key {
+                VirtualKeyCode::Escape => { (ItemMenuResult::Cancel, None) }
+                _ => {
+                    let selection = letter_to_option(key);
+                    if selection > -1 && selection < count as i32 {
+                        return (ItemMenuResult::Selected, Some(equippable[selection as usize]));
+                    }
+                    (ItemMenuResult::NoResponse, None)
+                }
+            }
+        }
+    }
+}
+
 pub fn ranged_target(gs : &mut State, ctx : &mut BTerm, range : i32) -> (ItemMenuResult, Option<Point>) {
     let player_entity = gs.ecs.fetch::<Entity>();
     let player_pos = gs.ecs.fetch::<Point>();
@@ -238,15 +283,15 @@ pub fn main_menu(gs : &mut State, ctx : &mut BTerm) -> MainMenuResult {
     let save_exists = super::saveload_system::does_save_exist();
     let runstate = gs.ecs.fetch::<RunState>();
     let assets = gs.ecs.fetch::<RexAssets>();
-
     ctx.render_xp_sprite(&assets.menu, 0, 0);
+
     ctx.draw_box_double(24, 18, 31, 10, RGB::named(WHEAT), RGB::named(BLACK));
+
     ctx.print_color_centered(20, RGB::named(YELLOW), RGB::named(BLACK), "Rust Roguelike Tutorial");
     ctx.print_color_centered(21, RGB::named(CYAN), RGB::named(BLACK), "by Herbert Wolverson");
     ctx.print_color_centered(22, RGB::named(GRAY), RGB::named(BLACK), "Use Up/Down Arrows and Enter");
 
     let mut y = 24;
-
     if let RunState::MainMenu{ menu_selection : selection } = *runstate {
         if selection == MainMenuSelection::NewGame {
             ctx.print_color_centered(y, RGB::named(MAGENTA), RGB::named(BLACK), "Begin New Game");
@@ -309,55 +354,10 @@ pub fn main_menu(gs : &mut State, ctx : &mut BTerm) -> MainMenuResult {
     MainMenuResult::NoSelection { selected: MainMenuSelection::NewGame }
 }
 
-pub fn remove_item_menu(gs : &mut State, ctx : &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
-    let player_entity = gs.ecs.fetch::<Entity>();
-    let names = gs.ecs.read_storage::<Name>();
-    let backpack = gs.ecs.read_storage::<Equipped>();
-    let entities = gs.ecs.entities();
-
-    let inventory = (&backpack, &names).join().filter(|item| item.0.owner == *player_entity );
-    let count = inventory.count();
-
-    let mut y = (25 - (count / 2)) as i32;
-    ctx.draw_box(15, y-2, 31, (count+3) as i32, RGB::named(WHITE), RGB::named(BLACK));
-    ctx.print_color(18, y-2, RGB::named(YELLOW), RGB::named(BLACK), "Remove Which Item?");
-    ctx.print_color(18, y+count as i32+1, RGB::named(YELLOW), RGB::named(BLACK), "ESCAPE to cancel");
-
-    let mut equippable : Vec<Entity> = Vec::new();
-    let mut j = 0;
-    for (entity, _pack, name) in (&entities, &backpack, &names).join().filter(|item| item.1.owner == *player_entity ) {
-        ctx.set(17, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437('('));
-        ctx.set(18, y, RGB::named(YELLOW), RGB::named(BLACK), 97+j as FontCharType);
-        ctx.set(19, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437(')'));
-
-        ctx.print(21, y, &name.name.to_string());
-        equippable.push(entity);
-        y += 1;
-        j += 1;
-    }
-
-    match ctx.key {
-        None => (ItemMenuResult::NoResponse, None),
-        Some(key) => {
-            match key {
-                VirtualKeyCode::Escape => { (ItemMenuResult::Cancel, None) }
-                _ => {
-                    let selection = letter_to_option(key);
-                    if selection > -1 && selection < count as i32 {
-                        return (ItemMenuResult::Selected, Some(equippable[selection as usize]));
-                    }
-                    (ItemMenuResult::NoResponse, None)
-                }
-            }
-        }
-    }
-}
-
 #[derive(PartialEq, Copy, Clone)]
 pub enum GameOverResult { NoSelection, QuitToMenu }
 
 pub fn game_over(ctx : &mut BTerm) -> GameOverResult {
-    ctx.draw_box(15, 13, 50, 10, WHITE, BLACK);
     ctx.print_color_centered(15, RGB::named(YELLOW), RGB::named(BLACK), "Your journey has ended!");
     ctx.print_color_centered(17, RGB::named(WHITE), RGB::named(BLACK), "One day, we'll tell you all about how you did.");
     ctx.print_color_centered(18, RGB::named(WHITE), RGB::named(BLACK), "That day, sadly, is not in this chapter..");
@@ -369,4 +369,3 @@ pub fn game_over(ctx : &mut BTerm) -> GameOverResult {
         Some(_) => GameOverResult::QuitToMenu
     }
 }
-

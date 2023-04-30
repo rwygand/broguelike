@@ -1,6 +1,5 @@
-use super::{TileType, Map};
+use super::{TileType, Map, MapChunk, tile_idx_in_chunk};
 use std::collections::HashSet;
-use crate::map_builders::waveform_collpase::common::{MapChunk, tile_idx_in_chunk};
 use bracket_lib::prelude::*;
 
 pub fn build_patterns(map : &Map, chunk_size: i32, include_flipping: bool, dedupe: bool) -> Vec<Vec<TileType>> {
@@ -61,10 +60,10 @@ pub fn build_patterns(map : &Map, chunk_size: i32, include_flipping: bool, dedup
 
     // Dedupe
     if dedupe {
-        console::log(format!("Pre de-duplication, there are {} patterns", patterns.len()));
+        log(format!("Pre de-duplication, there are {} patterns", patterns.len()));
         let set: HashSet<Vec<TileType>> = patterns.drain(..).collect(); // dedup
         patterns.extend(set.into_iter());
-        console::log(format!("There are {} patterns", patterns.len()));
+        log(format!("There are {} patterns", patterns.len()));
     }
 
     patterns
@@ -84,25 +83,25 @@ pub fn render_pattern_to_map(map : &mut Map, chunk: &MapChunk, chunk_size: i32, 
     for (x,northbound) in chunk.exits[0].iter().enumerate() {
         if *northbound {
             let map_idx = map.xy_idx(start_x + x as i32, start_y);
-            map.tiles[map_idx] = TileType::StairsDown;
+            map.tiles[map_idx] = TileType::DownStairs;
         }
     }
     for (x,southbound) in chunk.exits[1].iter().enumerate() {
         if *southbound {
             let map_idx = map.xy_idx(start_x + x as i32, start_y + chunk_size -1);
-            map.tiles[map_idx] = TileType::StairsDown;
+            map.tiles[map_idx] = TileType::DownStairs;
         }
     }
     for (x,westbound) in chunk.exits[2].iter().enumerate() {
         if *westbound {
             let map_idx = map.xy_idx(start_x, start_y + x as i32);
-            map.tiles[map_idx] = TileType::StairsDown;
+            map.tiles[map_idx] = TileType::DownStairs;
         }
     }
-    for (x,eastbound) in chunk.exits[3].iter().enumerate() {
+    for (x,eastbound) in chunk.exits[2].iter().enumerate() {
         if *eastbound {
             let map_idx = map.xy_idx(start_x + chunk_size - 1, start_y + x as i32);
-            map.tiles[map_idx] = TileType::StairsDown;
+            map.tiles[map_idx] = TileType::DownStairs;
         }
     }
 }

@@ -1,9 +1,9 @@
-use bracket_lib::prelude::*;
+use {VirtualKeyCode,  Point};
 use specs::prelude::*;
 use std::cmp::{max, min};
-use crate::{EntityMoved, HungerClock, HungerState, Monster, TileType};
 use super::{Position, Player, Viewshed, State, Map, RunState, CombatStats, WantsToMelee, Item,
-    gamelog::GameLog, WantsToPickupItem};
+    gamelog::GameLog, WantsToPickupItem, TileType, Monster, HungerClock, HungerState, EntityMoved};
+use bracket_lib::prelude::*;
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
@@ -30,13 +30,26 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         if !map.blocked[destination_idx] {
             pos.x = min(79 , max(0, pos.x + delta_x));
             pos.y = min(49, max(0, pos.y + delta_y));
+            entity_moved.insert(entity, EntityMoved{}).expect("Unable to insert marker");
 
             viewshed.dirty = true;
             let mut ppos = ecs.write_resource::<Point>();
             ppos.x = pos.x;
             ppos.y = pos.y;
-            entity_moved.insert(entity, EntityMoved{}).expect("Unable to insert marker");
         }
+    }
+}
+
+pub fn try_next_level(ecs: &mut World) -> bool {
+    let player_pos = ecs.fetch::<Point>();
+    let map = ecs.fetch::<Map>();
+    let player_idx = map.xy_idx(player_pos.x, player_pos.y);
+    if map.tiles[player_idx] == TileType::DownStairs {
+        true
+    } else {
+        let mut gamelog = ecs.fetch_mut::<GameLog>();
+        gamelog.entries.push("There is no way down from here.".to_string());
+        false
     }
 }
 
@@ -61,79 +74,6 @@ fn get_item(ecs: &mut World) {
             let mut pickup = ecs.write_storage::<WantsToPickupItem>();
             pickup.insert(*player_entity, WantsToPickupItem{ collected_by: *player_entity, item }).expect("Unable to insert want to pickup");
         }
-    }
-}
-
-pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
-    // Player movement
-    match ctx.key {
-        None => { return RunState::AwaitingInput } // Nothing happened
-        Some(key) => match key {
-            VirtualKeyCode::Left |
-            VirtualKeyCode::Numpad4 |
-            VirtualKeyCode::H => try_move_player(-1, 0, &mut gs.ecs),
-
-            VirtualKeyCode::Right |
-            VirtualKeyCode::Numpad6 |
-            VirtualKeyCode::L => try_move_player(1, 0, &mut gs.ecs),
-
-            VirtualKeyCode::Up |
-            VirtualKeyCode::Numpad8 |
-            VirtualKeyCode::K => try_move_player(0, -1, &mut gs.ecs),
-
-            VirtualKeyCode::Down |
-            VirtualKeyCode::Numpad2 |
-            VirtualKeyCode::J => try_move_player(0, 1, &mut gs.ecs),
-
-            // Diagonals
-            VirtualKeyCode::Numpad9 |
-            VirtualKeyCode::U => try_move_player(1, -1, &mut gs.ecs),
-
-            VirtualKeyCode::Numpad7 |
-            VirtualKeyCode::Y => try_move_player(-1, -1, &mut gs.ecs),
-
-            VirtualKeyCode::Numpad3 |
-            VirtualKeyCode::N => try_move_player(1, 1, &mut gs.ecs),
-
-            VirtualKeyCode::Numpad1 |
-            VirtualKeyCode::B => try_move_player(-1, 1, &mut gs.ecs),
-
-            // Skip Turn
-            VirtualKeyCode::Numpad5 => return skip_turn(&mut gs.ecs),
-            VirtualKeyCode::Space => return skip_turn(&mut gs.ecs),
-
-            // Managing Items
-            VirtualKeyCode::G => get_item(&mut gs.ecs),
-            VirtualKeyCode::I => return RunState::ShowInventory,
-            VirtualKeyCode::D => return RunState::ShowDropItem,
-            VirtualKeyCode::R => return RunState::ShowRemoveItem,
-
-            // Save and Quit
-            VirtualKeyCode::Escape => return RunState::SaveGame,
-
-            // Level changes
-            VirtualKeyCode::Period => {
-                if try_next_level(&mut gs.ecs) {
-                    return RunState::NextLevel;
-                }
-            }
-
-            _ => { return RunState::AwaitingInput }
-        },
-    }
-    RunState::PlayerTurn
-}
-
-pub fn try_next_level(ecs: &mut World) -> bool {
-    let player_pos = ecs.fetch::<Point>();
-    let map = ecs.fetch::<Map>();
-    let player_idx = map.xy_idx(player_pos.x, player_pos.y);
-    if map.tiles[player_idx] == TileType::StairsDown {
-        true
-    } else {
-        let mut gamelog = ecs.fetch_mut::<GameLog>();
-        gamelog.entries.push("There is no way down from here.".to_string());
-        false
     }
 }
 
@@ -173,5 +113,65 @@ fn skip_turn(ecs: &mut World) -> RunState {
         player_hp.hp = i32::min(player_hp.hp + 1, player_hp.max_hp);
     }
 
+    RunState::PlayerTurn
+}
+
+pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
+    // Player movement
+    match ctx.key {
+        None => { return RunState::AwaitingInput } // Nothing happened
+        Some(key) => match key {
+            VirtualKeyCode::Left |
+            VirtualKeyCode::Numpad4 |
+            VirtualKeyCode::H => try_move_player(-1, 0, &mut gs.ecs),
+
+            VirtualKeyCode::Right |
+            VirtualKeyCode::Numpad6 |
+            VirtualKeyCode::L => try_move_player(1, 0, &mut gs.ecs),
+
+            VirtualKeyCode::Up |
+            VirtualKeyCode::Numpad8 |
+            VirtualKeyCode::K => try_move_player(0, -1, &mut gs.ecs),
+
+            VirtualKeyCode::Down |
+            VirtualKeyCode::Numpad2 |
+            VirtualKeyCode::J => try_move_player(0, 1, &mut gs.ecs),
+
+            // Diagonals
+            VirtualKeyCode::Numpad9 |
+            VirtualKeyCode::U => try_move_player(1, -1, &mut gs.ecs),
+
+            VirtualKeyCode::Numpad7 |
+            VirtualKeyCode::Y => try_move_player(-1, -1, &mut gs.ecs),
+
+            VirtualKeyCode::Numpad3 |
+            VirtualKeyCode::N => try_move_player(1, 1, &mut gs.ecs),
+
+            VirtualKeyCode::Numpad1 |
+            VirtualKeyCode::B => try_move_player(-1, 1, &mut gs.ecs),
+
+            // Skip Turn
+            VirtualKeyCode::Numpad5 |
+            VirtualKeyCode::Space => return skip_turn(&mut gs.ecs),
+
+            // Level changes
+            VirtualKeyCode::Period => {
+                if try_next_level(&mut gs.ecs) {
+                    return RunState::NextLevel;
+                }
+            }
+
+            // Picking up items
+            VirtualKeyCode::G => get_item(&mut gs.ecs),
+            VirtualKeyCode::I => return RunState::ShowInventory,
+            VirtualKeyCode::D => return RunState::ShowDropItem,
+            VirtualKeyCode::R => return RunState::ShowRemoveItem,
+
+            // Save and Quit
+            VirtualKeyCode::Escape => return RunState::SaveGame,
+
+            _ => { return RunState::AwaitingInput }
+        },
+    }
     RunState::PlayerTurn
 }

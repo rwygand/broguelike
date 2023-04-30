@@ -1,9 +1,9 @@
 use specs::prelude::*;
-use bracket_lib::prelude::*;
-use crate::{DefenseBonus, Equipped, HungerClock, HungerState, MeleePowerBonus, Position};
-use super::{CombatStats, WantsToMelee, Name, SufferDamage, gamelog::GameLog};
-use crate::particle_system::ParticleBuilder;
+use super::{CombatStats, WantsToMelee, Name, SufferDamage, gamelog::GameLog, MeleePowerBonus, DefenseBonus, Equipped,
+    particle_system::ParticleBuilder, Position, HungerClock, HungerState};
+
 pub struct MeleeCombatSystem {}
+use bracket_lib::prelude::*;
 
 impl<'a> System<'a> for MeleeCombatSystem {
     #[allow(clippy::type_complexity)]
@@ -19,11 +19,12 @@ impl<'a> System<'a> for MeleeCombatSystem {
                         WriteExpect<'a, ParticleBuilder>,
                         ReadStorage<'a, Position>,
                         ReadStorage<'a, HungerClock>
-    );
+                      );
 
     fn run(&mut self, data : Self::SystemData) {
         let (entities, mut log, mut wants_melee, names, combat_stats, mut inflict_damage,
             melee_power_bonuses, defense_bonuses, equipped, mut particle_builder, positions, hunger_clock) = data;
+
         for (entity, wants_melee, name, stats) in (&entities, &wants_melee, &names, &combat_stats).join() {
             if stats.hp > 0 {
                 let mut offensive_bonus = 0;

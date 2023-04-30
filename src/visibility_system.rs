@@ -1,8 +1,6 @@
 use specs::prelude::*;
-use super::{Viewshed, Position, Map, Player};
+use super::{Viewshed, Position, Map, Player, Hidden, gamelog::GameLog, Name};
 use bracket_lib::prelude::*;
-use crate::gamelog::GameLog;
-use crate::{Hidden, Name};
 
 pub struct VisibilitySystem {}
 

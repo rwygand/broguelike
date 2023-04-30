@@ -1,7 +1,8 @@
-use bracket_lib::prelude::*;
-use std::collections::HashSet;
+use { RGB,  BaseMap, Algorithm2D, Point };
 use specs::prelude::*;
 use serde::{Serialize, Deserialize};
+use std::collections::HashSet;
+use bracket_lib::prelude::*;
 
 pub const MAPWIDTH : usize = 80;
 pub const MAPHEIGHT : usize = 43;
@@ -9,7 +10,7 @@ pub const MAPCOUNT : usize = MAPHEIGHT * MAPWIDTH;
 
 #[derive(PartialEq, Eq, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
-    Wall, Floor, StairsDown
+    Wall, Floor, DownStairs
 }
 
 #[derive(Default, Serialize, Deserialize, Clone)]
@@ -28,23 +29,7 @@ pub struct Map {
     pub tile_content : Vec<Vec<Entity>>
 }
 
-
 impl Map {
-    /// Generates an empty map, consisting entirely of solid walls
-    pub fn new(new_depth : i32) -> Map {
-        Map{
-            tiles : vec![TileType::Wall; MAPCOUNT],
-            width : MAPWIDTH as i32,
-            height: MAPHEIGHT as i32,
-            revealed_tiles : vec![false; MAPCOUNT],
-            visible_tiles : vec![false; MAPCOUNT],
-            blocked : vec![false; MAPCOUNT],
-            tile_content : vec![Vec::new(); MAPCOUNT],
-            depth: new_depth,
-            bloodstains: HashSet::new()
-        }
-    }
-
     pub fn xy_idx(&self, x: i32, y: i32) -> usize {
         (y as usize * self.width as usize) + x as usize
     }
@@ -64,6 +49,21 @@ impl Map {
     pub fn clear_content_index(&mut self) {
         for content in self.tile_content.iter_mut() {
             content.clear();
+        }
+    }
+
+    /// Generates an empty map, consisting entirely of solid walls
+    pub fn new(new_depth : i32) -> Map {
+        Map{
+            tiles : vec![TileType::Wall; MAPCOUNT],
+            width : MAPWIDTH as i32,
+            height: MAPHEIGHT as i32,
+            revealed_tiles : vec![false; MAPCOUNT],
+            visible_tiles : vec![false; MAPCOUNT],
+            blocked : vec![false; MAPCOUNT],
+            tile_content : vec![Vec::new(); MAPCOUNT],
+            depth: new_depth,
+            bloodstains: HashSet::new()
         }
     }
 }
@@ -109,49 +109,9 @@ impl Algorithm2D for Map {
     }
 }
 
-pub fn draw_map(map : &Map, ctx : &mut BTerm) {
-    let mut y = 0;
-    let mut x = 0;
-    for (idx,tile) in map.tiles.iter().enumerate() {
-        // Render a tile depending upon the tile type
-
-        if map.revealed_tiles[idx] {
-            let glyph;
-            let mut fg;
-            let mut bg = RGB::from_f32(0., 0., 0.);
-            match tile {
-                TileType::Floor => {
-                    glyph = to_cp437(' ');
-                    fg = RGB::from_f32(0.0, 0.5, 0.5);
-                }
-                TileType::Wall => {
-                    glyph = wall_glyph(&*map, x, y);
-                    fg = RGB::from_f32(0., 1.0, 0.);
-                }
-                TileType::StairsDown => {
-                    glyph = to_cp437('>');
-                    fg = RGB::from_f32(0., 1.0, 1.0);
-                }
-            }
-            if false {
-                // I don't like Bloodstains
-                if map.bloodstains.contains(&idx) { bg = RGB::from_f32(0.75, 0., 0.); }
-            }
-            if !map.visible_tiles[idx] {
-                fg = fg.to_greyscale();
-                bg = RGB::from_f32(0., 0., 0.); // Don't show stains out of visual range
-            }
-            ctx.set(x, y, fg, bg, glyph);
-        }
-
-
-        // Move the coordinates
-        x += 1;
-        if x > MAPWIDTH as i32-1 {
-            x = 0;
-            y += 1;
-        }
-    }
+fn is_revealed_and_wall(map: &Map, x: i32, y: i32) -> bool {
+    let idx = map.xy_idx(x, y);
+    map.tiles[idx] == TileType::Wall && map.revealed_tiles[idx]
 }
 
 fn wall_glyph(map : &Map, x: i32, y:i32) -> FontCharType {
@@ -184,7 +144,43 @@ fn wall_glyph(map : &Map, x: i32, y:i32) -> FontCharType {
     }
 }
 
-fn is_revealed_and_wall(map: &Map, x: i32, y: i32) -> bool {
-    let idx = map.xy_idx(x, y);
-    map.tiles[idx] == TileType::Wall && map.revealed_tiles[idx]
+pub fn draw_map(map : &Map, ctx : &mut BTerm) {
+    let mut y = 0;
+    let mut x = 0;
+    for (idx,tile) in map.tiles.iter().enumerate() {
+        // Render a tile depending upon the tile type
+
+        if map.revealed_tiles[idx] {
+            let glyph;
+            let mut fg;
+            let mut bg = RGB::from_f32(0., 0., 0.);
+            match tile {
+                TileType::Floor => {
+                    glyph = to_cp437('.');
+                    fg = RGB::from_f32(0.0, 0.5, 0.5);
+                }
+                TileType::Wall => {
+                    glyph = wall_glyph(&*map, x, y);
+                    fg = RGB::from_f32(0., 1.0, 0.);
+                }
+                TileType::DownStairs => {
+                    glyph = to_cp437('>');
+                    fg = RGB::from_f32(0., 1.0, 1.0);
+                }
+            }
+            if map.bloodstains.contains(&idx) { bg = RGB::from_f32(0.75, 0., 0.); }
+            if !map.visible_tiles[idx] {
+                fg = fg.to_greyscale();
+                bg = RGB::from_f32(0., 0., 0.); // Don't show stains out of visual range
+            }
+            ctx.set(x, y, fg, bg, glyph);
+        }
+
+        // Move the coordinates
+        x += 1;
+        if x > MAPWIDTH as i32-1 {
+            x = 0;
+            y += 1;
+        }
+    }
 }

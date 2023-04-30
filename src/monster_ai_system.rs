@@ -1,8 +1,8 @@
 use specs::prelude::*;
-use super::{Viewshed, Monster, Map, Position, WantsToMelee, RunState, Confusion};
+use super::{Viewshed, Monster, Map, Position, WantsToMelee, RunState,
+    Confusion, particle_system::ParticleBuilder, EntityMoved};
+use {Point};
 use bracket_lib::prelude::*;
-use crate::EntityMoved;
-use crate::particle_system::ParticleBuilder;
 
 pub struct MonsterAI {}
 
@@ -40,7 +40,7 @@ impl<'a> System<'a> for MonsterAI {
                 can_act = false;
 
                 particle_builder.request(pos.x, pos.y, RGB::named(MAGENTA),
-                                         RGB::named(BLACK), to_cp437('?'), 200.0);
+                    RGB::named(BLACK), to_cp437('?'), 200.0);
             }
 
             if can_act {

@@ -6,13 +6,13 @@ pub struct HungerSystem {}
 impl<'a> System<'a> for HungerSystem {
     #[allow(clippy::type_complexity)]
     type SystemData = (
-        Entities<'a>,
-        WriteStorage<'a, HungerClock>,
-        ReadExpect<'a, Entity>, // The player
-        ReadExpect<'a, RunState>,
-        WriteStorage<'a, SufferDamage>,
-        WriteExpect<'a, GameLog>
-    );
+                        Entities<'a>,
+                        WriteStorage<'a, HungerClock>,
+                        ReadExpect<'a, Entity>, // The player
+                        ReadExpect<'a, RunState>,
+                        WriteStorage<'a, SufferDamage>,
+                        WriteExpect<'a, GameLog>
+                      );
 
     fn run(&mut self, data : Self::SystemData) {
         let (entities, mut hunger_clock, player_entity, runstate, mut inflict_damage, mut log) = data;
@@ -28,7 +28,7 @@ impl<'a> System<'a> for HungerSystem {
                 }
                 RunState::MonsterTurn => {
                     if entity != *player_entity {
-                        proceed = true;
+                        proceed = false;
                     }
                 }
                 _ => proceed = false

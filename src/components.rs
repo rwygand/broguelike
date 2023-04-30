@@ -2,10 +2,11 @@
 
 use specs::prelude::*;
 use specs_derive::*;
-use bracket_lib::prelude::*;
+use {RGB};
 use serde::{Serialize, Deserialize};
 use specs::saveload::{Marker, ConvertSaveload};
 use specs::error::NoError;
+use bracket_lib::prelude::*;
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Position {
@@ -13,14 +14,6 @@ pub struct Position {
     pub y: i32,
 }
 
-impl Position {
-    pub fn from_point(p: Point) -> Position {
-        Position {
-            x: p.x,
-            y: p.y,
-        }
-    }
-}
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Renderable {
     pub glyph: FontCharType,
@@ -29,7 +22,7 @@ pub struct Renderable {
     pub render_order : i32
 }
 
-#[derive(Component, Serialize, Deserialize, Clone)]
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct Player {}
 
 #[derive(Component, ConvertSaveload, Clone)]
@@ -110,25 +103,30 @@ pub struct ProvidesHealing {
     pub heal_amount : i32
 }
 
-#[derive(Component, Debug, ConvertSaveload)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct InBackpack {
     pub owner : Entity
 }
 
-#[derive(Component, Debug, ConvertSaveload)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToPickupItem {
     pub collected_by : Entity,
     pub item : Entity
 }
 
-#[derive(Component, Debug, ConvertSaveload)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToUseItem {
     pub item : Entity,
     pub target : Option<Point>
 }
 
-#[derive(Component, Debug, ConvertSaveload)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToDropItem {
+    pub item : Entity
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct WantsToRemoveItem {
     pub item : Entity
 }
 
@@ -154,11 +152,6 @@ pub struct MeleePowerBonus {
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct DefenseBonus {
     pub defense : i32
-}
-
-#[derive(Component, Debug, ConvertSaveload, Clone)]
-pub struct WantsToRemoveItem {
-    pub item : Entity
 }
 
 #[derive(Component, Serialize, Deserialize, Clone)]
@@ -193,7 +186,7 @@ pub struct EntityMoved {}
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct SingleActivation {}
 
-// Serialization helper code. We need to implement ConvertSaveload for each type that contains an
+// Serialization helper code. We need to implement ConvertSaveLoad for each type that contains an
 // Entity.
 
 pub struct SerializeMe;

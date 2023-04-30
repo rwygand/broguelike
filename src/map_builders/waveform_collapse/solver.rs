@@ -1,6 +1,5 @@
-use super::Map;
+use super::{MapChunk, Map};
 use std::collections::HashSet;
-use crate::map_builders::waveform_collpase::common::MapChunk;
 use bracket_lib::prelude::*;
 
 pub struct Solver {
@@ -82,7 +81,7 @@ impl Solver {
         neighbors
     }
 
-    pub fn iteration(&mut self, map: &mut Map, rng : &mut super::RandomNumberGenerator) -> bool {
+    pub fn iteration(&mut self, map: &mut Map, rng : &mut RandomNumberGenerator) -> bool {
         if self.remaining.is_empty() { return true; }
 
         // Populate the neighbor count of the remaining list
@@ -199,12 +198,12 @@ impl Solver {
             }
 
             if possible_options.is_empty() {
-                console::log("Oh no! It's not possible!");
+                log("Oh no! It's not possible!");
                 self.possible = false;
                 return true;
             } else {
                 let new_chunk_idx = if possible_options.len() == 1 { 0 }
-                else { rng.roll_dice(1, possible_options.len() as i32)-1 };
+                    else { rng.roll_dice(1, possible_options.len() as i32)-1 };
 
                 self.chunks[chunk_index] = Some(possible_options[new_chunk_idx as usize]);
                 let left_x = chunk_x as i32 * self.chunk_size as i32;

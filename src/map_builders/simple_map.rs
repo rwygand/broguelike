@@ -1,18 +1,15 @@
+use super::{MapBuilder, Map, Rect, apply_room_to_map,
+    apply_horizontal_tunnel, apply_vertical_tunnel, TileType,
+    Position, spawner, SHOW_MAPGEN_VISUALIZER};
 use bracket_lib::prelude::*;
-use super::{MapBuilder, Map, Position};
-use RandomNumberGenerator;
-use specs::prelude::*;
-use crate::{SHOW_MAPGEN_VISUALIZER, spawner, TileType};
-use common::*;
-
-use crate::map_builders::common;
 
 pub struct SimpleMapBuilder {
     map : Map,
     starting_position : Position,
     depth: i32,
     rooms: Vec<Rect>,
-    history: Vec<Map>
+    history: Vec<Map>,
+    spawn_list: Vec<(usize, String)>
 }
 
 impl MapBuilder for SimpleMapBuilder {
@@ -24,18 +21,16 @@ impl MapBuilder for SimpleMapBuilder {
         self.starting_position.clone()
     }
 
-    fn build_map(&mut self) {
+    fn get_snapshot_history(&self) -> Vec<Map> {
+        self.history.clone()
+    }
+
+    fn build_map(&mut self)  {
         self.rooms_and_corridors();
     }
 
-    fn spawn_entities(&mut self, ecs : &mut World) {
-        for room in self.rooms.iter().skip(1) {
-            spawner::spawn_room(ecs, room, self.depth);
-        }
-    }
-
-    fn get_snapshot_history(&self) -> Vec<Map> {
-        self.history.clone()
+    fn get_spawn_list(&self) -> &Vec<(usize, String)> {
+        &self.spawn_list
     }
 
     fn take_snapshot(&mut self) {
@@ -50,6 +45,7 @@ impl MapBuilder for SimpleMapBuilder {
 }
 
 impl SimpleMapBuilder {
+    #[allow(dead_code)]
     pub fn new(new_depth : i32) -> SimpleMapBuilder {
         SimpleMapBuilder{
             map : Map::new(new_depth),
@@ -57,6 +53,7 @@ impl SimpleMapBuilder {
             depth : new_depth,
             rooms: Vec::new(),
             history: Vec::new(),
+            spawn_list: Vec::new()
         }
     }
 
@@ -67,12 +64,12 @@ impl SimpleMapBuilder {
 
         let mut rng = RandomNumberGenerator::new();
 
-        for _i in 0..MAX_ROOMS {
+        for _ in 0..MAX_ROOMS {
             let w = rng.range(MIN_SIZE, MAX_SIZE);
             let h = rng.range(MIN_SIZE, MAX_SIZE);
             let x = rng.roll_dice(1, self.map.width - w - 1) - 1;
             let y = rng.roll_dice(1, self.map.height - h - 1) - 1;
-            let new_room = Rect::with_size(x, y, w, h);
+            let new_room = Rect::new(x, y, w, h);
             let mut ok = true;
             for other_room in self.rooms.iter() {
                 if new_room.intersect(other_room) { ok = false }
@@ -82,14 +79,14 @@ impl SimpleMapBuilder {
                 self.take_snapshot();
 
                 if !self.rooms.is_empty() {
-                    let new_pos = new_room.center();
-                    let prev_pos = self.rooms[self.rooms.len()-1].center();
+                    let (new_x, new_y) = new_room.center();
+                    let (prev_x, prev_y) = self.rooms[self.rooms.len()-1].center();
                     if rng.range(0,2) == 1 {
-                        apply_horizontal_tunnel(&mut self.map, prev_pos.x, new_pos.x, prev_pos.y);
-                        apply_vertical_tunnel(&mut self.map, prev_pos.y, new_pos.y, new_pos.x);
+                        apply_horizontal_tunnel(&mut self.map, prev_x, new_x, prev_y);
+                        apply_vertical_tunnel(&mut self.map, prev_y, new_y, new_x);
                     } else {
-                        apply_vertical_tunnel(&mut self.map, prev_pos.y, new_pos.y, prev_pos.x);
-                        apply_horizontal_tunnel(&mut self.map, prev_pos.x, new_pos.x, new_pos.y);
+                        apply_vertical_tunnel(&mut self.map, prev_y, new_y, prev_x);
+                        apply_horizontal_tunnel(&mut self.map, prev_x, new_x, new_y);
                     }
                 }
 
@@ -99,10 +96,15 @@ impl SimpleMapBuilder {
         }
 
         let stairs_position = self.rooms[self.rooms.len()-1].center();
-        let stairs_idx = self.map.xy_idx(stairs_position.x, stairs_position.y);
-        self.map.tiles[stairs_idx] = TileType::StairsDown;
+        let stairs_idx = self.map.xy_idx(stairs_position.0, stairs_position.1);
+        self.map.tiles[stairs_idx] = TileType::DownStairs;
 
         let start_pos = self.rooms[0].center();
-        self.starting_position = Position{ x: start_pos.x, y: start_pos.y };
+        self.starting_position = Position{ x: start_pos.0, y: start_pos.1 };
+
+        // Spawn some entities
+        for room in self.rooms.iter().skip(1) {
+            spawner::spawn_room(&self.map, &mut rng, room, self.depth, &mut self.spawn_list);
+        }
     }
 }

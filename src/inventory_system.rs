@@ -1,10 +1,9 @@
-use bracket_lib::prelude::*;
 use specs::prelude::*;
-use crate::{Equippable, Equipped, HungerClock, HungerState, MagicMapper, ProvidesFood, RunState, WantsToRemoveItem};
-use crate::particle_system::ParticleBuilder;
 use super::{WantsToPickupItem, Name, InBackpack, Position, gamelog::GameLog, WantsToUseItem,
     Consumable, ProvidesHealing, CombatStats, WantsToDropItem, InflictsDamage, Map, SufferDamage,
-    AreaOfEffect, Confusion};
+    AreaOfEffect, Confusion, Equippable, Equipped, WantsToRemoveItem, particle_system::ParticleBuilder,
+    ProvidesFood, HungerClock, HungerState, MagicMapper, RunState};
+use bracket_lib::prelude::*;
 
 pub struct ItemCollectionSystem {}
 
@@ -60,7 +59,7 @@ impl<'a> System<'a> for ItemUseSystem {
                         WriteStorage<'a, HungerClock>,
                         ReadStorage<'a, MagicMapper>,
                         WriteExpect<'a, RunState>
-    );
+                      );
 
     #[allow(clippy::cognitive_complexity)]
     fn run(&mut self, data : Self::SystemData) {
@@ -293,11 +292,11 @@ pub struct ItemRemoveSystem {}
 impl<'a> System<'a> for ItemRemoveSystem {
     #[allow(clippy::type_complexity)]
     type SystemData = (
-        Entities<'a>,
-        WriteStorage<'a, WantsToRemoveItem>,
-        WriteStorage<'a, Equipped>,
-        WriteStorage<'a, InBackpack>
-    );
+                        Entities<'a>,
+                        WriteStorage<'a, WantsToRemoveItem>,
+                        WriteStorage<'a, Equipped>,
+                        WriteStorage<'a, InBackpack>
+                      );
 
     fn run(&mut self, data : Self::SystemData) {
         let (entities, mut wants_remove, mut equipped, mut backpack) = data;
