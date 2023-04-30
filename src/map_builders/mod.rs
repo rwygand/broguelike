@@ -56,7 +56,9 @@ use rooms_corridors_nearest::NearestCorridors;
 use rooms_corridors_lines::StraightLineCorridors;
 use room_corridor_spawner::CorridorSpawner;
 use door_placement::DoorPlacement;
-use bracket_lib::prelude::RandomNumberGenerator;
+use bracket_lib::prelude::{console, RandomNumberGenerator};
+mod town;
+use town::town_builder;
 
 pub struct BuilderMap {
     pub spawn_list : Vec<(usize, String)>,
@@ -293,3 +295,10 @@ pub fn random_builder(new_depth: i32, rng: &mut RandomNumberGenerator, width: i3
     builder
 }
 
+pub fn level_builder(new_depth: i32, rng: &mut RandomNumberGenerator, width: i32, height: i32) -> BuilderChain {
+    console::log(format!("Depth: {}", new_depth));
+    match new_depth {
+        1 => town_builder(new_depth, rng, width, height),
+        _ => random_builder(new_depth, rng, width, height)
+    }
+}

@@ -106,20 +106,21 @@ fn get_tile_glyph(idx: usize, map : &Map) -> (FontCharType, RGB, RGB) {
     let mut bg = RGB::from_f32(0., 0., 0.);
 
     match map.tiles[idx] {
-        TileType::Floor => {
-            glyph = to_cp437('.');
-            fg = RGB::from_f32(0.0, 0.5, 0.5);
-        }
+        TileType::Floor => { glyph = to_cp437('.'); fg = RGB::from_f32(0.0, 0.5, 0.5); }
+        TileType::WoodFloor => { glyph = to_cp437('.'); fg = RGB::named(CHOCOLATE); }
         TileType::Wall => {
             let x = idx as i32 % map.width;
             let y = idx as i32 / map.width;
             glyph = wall_glyph(&*map, x, y);
             fg = RGB::from_f32(0., 1.0, 0.);
         }
-        TileType::DownStairs => {
-            glyph = to_cp437('>');
-            fg = RGB::from_f32(0., 1.0, 1.0);
-        }
+        TileType::DownStairs => { glyph = to_cp437('>'); fg = RGB::from_f32(0., 1.0, 1.0); }
+        TileType::Bridge => { glyph = to_cp437('.'); fg = RGB::named(CHOCOLATE); }
+        TileType::Road => { glyph = to_cp437('~'); fg = RGB::named(GRAY); }
+        TileType::Grass => { glyph = to_cp437('"'); fg = RGB::named(GREEN); }
+        TileType::ShallowWater => { glyph = to_cp437('≈'); fg = RGB::named(CYAN); }
+        TileType::DeepWater => { glyph = to_cp437('≈'); fg = RGB::named(NAVY_BLUE); }
+        TileType::Gravel => { glyph = to_cp437(';'); fg = RGB::named(GRAY); }
     }
     if map.bloodstains.contains(&idx) { bg = RGB::from_f32(0.75, 0., 0.); }
     if !map.visible_tiles[idx] {
