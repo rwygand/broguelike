@@ -207,6 +207,7 @@ name = "broguelike"
 version = "0.1.0"
 dependencies = [
  "bracket-lib",
+ "lazy_static",
  "serde",
  "serde_json",
  "specs",

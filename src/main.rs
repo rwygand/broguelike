@@ -35,8 +35,9 @@ pub mod rex_assets;
 pub mod trigger_system;
 pub mod map_builders;
 pub mod camera;
-
-
+pub mod raws;
+#[macro_use]
+extern crate lazy_static;
 
 const SHOW_MAPGEN_VISUALIZER : bool = true;
 
@@ -451,8 +452,9 @@ fn main() -> BError {
     gs.ecs.register::<SingleActivation>();
     gs.ecs.register::<BlocksVisibility>();
     gs.ecs.register::<Door>();
-
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
+
+    raws::load_raws();
 
     gs.ecs.insert(Map::new(1, 64, 64));
     gs.ecs.insert(Point::new(0, 0));
