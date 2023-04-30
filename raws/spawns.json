@@ -188,7 +188,12 @@
       },
       "vision_range" : 4,
       "ai" : "vendor",
-      "attributes" : {}
+      "attributes" : {
+        "intelligence" : 13
+      },
+      "skills" : {
+        "Melee" : 2
+      }
     },
     {
       "name" : "Shady Salesman",

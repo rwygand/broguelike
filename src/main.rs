@@ -462,6 +462,7 @@ fn main() -> BError {
     gs.ecs.register::<Vendor>();
     gs.ecs.register::<Quips>();
     gs.ecs.register::<Attributes>();
+    gs.ecs.register::<Skills>();
 
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 

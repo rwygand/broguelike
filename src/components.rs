@@ -1,4 +1,6 @@
 #![allow(deprecated)]
+
+use std::collections::HashMap;
 use specs::prelude::*;
 use specs_derive::*;
 use bracket_lib::prelude::{Point, FontCharType, RGB};
@@ -216,6 +218,14 @@ pub struct Attributes {
     pub fitness : Attribute,
     pub quickness : Attribute,
     pub intelligence : Attribute
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Hash)]
+pub enum Skill { Melee, Defense, Magic }
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct Skills {
+    pub skills : HashMap<Skill, i32>
 }
 
 // Serialization helper code. We need to implement ConvertSaveLoad for each type that contains an
