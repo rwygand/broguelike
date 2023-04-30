@@ -6,11 +6,13 @@ use serde::*;
 mod rawmaster;
 mod mob_structs;
 mod prop_structs;
+mod spawn_table_structs;
 
 pub use rawmaster::*;
 use std::sync::Mutex;
 use mob_structs::*;
 use crate::raws::prop_structs::Prop;
+use crate::raws::spawn_table_structs::SpawnTableEntry;
 
 embedded_resource!(RAW_FILE, "../../raws/spawns.json");
 
@@ -22,7 +24,8 @@ lazy_static! {
 pub struct Raws {
     pub items : Vec<Item>,
     pub mobs : Vec<Mob>,
-    pub props : Vec<Prop>
+    pub props : Vec<Prop>,
+    pub spawn_table : Vec<SpawnTableEntry>,
 }
 
 pub fn load_raws() {
