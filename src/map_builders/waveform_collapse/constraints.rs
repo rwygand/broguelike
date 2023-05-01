@@ -1,6 +1,6 @@
 use super::{TileType, Map, MapChunk, tile_idx_in_chunk};
 use std::collections::HashSet;
-use bracket_lib::prelude::*;
+use bracket_lib::prelude::console;
 
 pub fn build_patterns(map : &Map, chunk_size: i32, include_flipping: bool, dedupe: bool) -> Vec<Vec<TileType>> {
     let chunks_x = map.width / chunk_size;
@@ -98,7 +98,7 @@ pub fn render_pattern_to_map(map : &mut Map, chunk: &MapChunk, chunk_size: i32, 
             map.tiles[map_idx] = TileType::DownStairs;
         }
     }
-    for (x,eastbound) in chunk.exits[2].iter().enumerate() {
+    for (x,eastbound) in chunk.exits[3].iter().enumerate() {
         if *eastbound {
             let map_idx = map.xy_idx(start_x + chunk_size - 1, start_y + x as i32);
             map.tiles[map_idx] = TileType::DownStairs;

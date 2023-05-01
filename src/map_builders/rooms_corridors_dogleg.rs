@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, Rect, apply_horizontal_tunnel, apply_vertical_tunnel };
 use bracket_lib::prelude::RandomNumberGenerator;
-
 pub struct DoglegCorridors {}
 
 impl MetaMapBuilder for DoglegCorridors {

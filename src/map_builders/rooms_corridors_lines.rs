@@ -1,5 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, Rect, TileType };
-use bracket_lib::prelude::{DistanceAlg, line2d, LineAlg, Point, RandomNumberGenerator};
+use bracket_lib::prelude::{RandomNumberGenerator, DistanceAlg, Point, line2d, LineAlg};
 use std::collections::HashSet;
 
 pub struct StraightLineCorridors {}

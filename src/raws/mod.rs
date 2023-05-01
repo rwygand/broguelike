@@ -1,18 +1,21 @@
 mod item_structs;
-
-use bracket_lib::prelude::*;
-use crate::raws::item_structs::*;
-use serde::*;
-mod rawmaster;
+use item_structs::*;
 mod mob_structs;
-mod prop_structs;
-mod spawn_table_structs;
-
-pub use rawmaster::*;
-use std::sync::Mutex;
 use mob_structs::*;
-use crate::raws::prop_structs::Prop;
-use crate::raws::spawn_table_structs::SpawnTableEntry;
+mod prop_structs;
+use prop_structs::*;
+mod spawn_table_structs;
+use spawn_table_structs::*;
+mod loot_structs;
+use loot_structs::*;
+mod faction_structs;
+pub use faction_structs::*;
+use bracket_lib::prelude::*;
+
+mod rawmaster;
+pub use rawmaster::*;
+use serde::{Deserialize};
+use std::sync::Mutex;
 
 embedded_resource!(RAW_FILE, "../../raws/spawns.json");
 
@@ -26,6 +29,8 @@ pub struct Raws {
     pub mobs : Vec<Mob>,
     pub props : Vec<Prop>,
     pub spawn_table : Vec<SpawnTableEntry>,
+    pub loot_tables : Vec<LootTable>,
+    pub faction_table : Vec<FactionInfo>
 }
 
 pub fn load_raws() {
@@ -40,9 +45,4 @@ pub fn load_raws() {
     let decoder : Raws = serde_json::from_str(&raw_string).expect("Unable to parse JSON");
 
     RAWS.lock().unwrap().load(decoder);
-    let raw_string = std::str::from_utf8(&raw_data).expect("Unable to convert to a valid UTF-8 string.");
-
-    let decoder : Raws = serde_json::from_str(&raw_string).expect("Unable to parse JSON");
-    log(format!("{:?}", decoder));
-
 }

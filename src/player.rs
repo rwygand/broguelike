@@ -1,17 +1,17 @@
-use bracket_lib::prelude::{VirtualKeyCode, BTerm, Point, to_cp437};
+use bracket_lib::prelude::{VirtualKeyCode, Point, to_cp437, BTerm};
 use specs::prelude::*;
 use std::cmp::{max, min};
-use crate::{Bystander, Pools, Vendor};
-use super::{Position, Player, Viewshed, State, Map, RunState, WantsToMelee, Item,
-    gamelog::GameLog, WantsToPickupItem, TileType, Monster, HungerClock, HungerState,
-    EntityMoved, Door, BlocksTile, BlocksVisibility, Renderable};
+use super::{Position, Player, Viewshed, State, Map, RunState, Attributes, WantsToMelee, Item,
+    gamelog::GameLog, WantsToPickupItem, TileType, HungerClock, HungerState,
+    EntityMoved, Door, BlocksTile, BlocksVisibility, Renderable, Pools, Faction,
+    raws::Reaction, Vendor, VendorMode};
 
-pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
+pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> RunState {
     let mut positions = ecs.write_storage::<Position>();
     let players = ecs.read_storage::<Player>();
     let mut viewsheds = ecs.write_storage::<Viewshed>();
     let entities = ecs.entities();
-    let combat_stats = ecs.read_storage::<Pools>();
+    let combat_stats = ecs.read_storage::<Attributes>();
     let map = ecs.fetch::<Map>();
     let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
     let mut entity_moved = ecs.write_storage::<EntityMoved>();
@@ -19,21 +19,34 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut blocks_visibility = ecs.write_storage::<BlocksVisibility>();
     let mut blocks_movement = ecs.write_storage::<BlocksTile>();
     let mut renderables = ecs.write_storage::<Renderable>();
-    let bystanders = ecs.read_storage::<Bystander>();
+    let factions = ecs.read_storage::<Faction>();
+    let mut result = RunState::AwaitingInput;
     let vendors = ecs.read_storage::<Vendor>();
 
     let mut swap_entities : Vec<(Entity, i32, i32)> = Vec::new();
 
     for (entity, _player, pos, viewshed) in (&entities, &players, &mut positions, &mut viewsheds).join() {
-        if pos.x + delta_x < 1 || pos.x + delta_x > map.width-1 || pos.y + delta_y < 1 || pos.y + delta_y > map.height-1 { return }
+        if pos.x + delta_x < 1 || pos.x + delta_x > map.width-1 || pos.y + delta_y < 1 || pos.y + delta_y > map.height-1 { return RunState::AwaitingInput; }
         let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
 
-        for potential_target in map.tile_content[destination_idx].iter() {
-            let bystander = bystanders.get(*potential_target);
-            let vendor = vendors.get(*potential_target);
-            if bystander.is_some() || vendor.is_some() {
+        result = crate::spatial::for_each_tile_content_with_gamemode(destination_idx, |potential_target| {
+            if let Some(_vendor) = vendors.get(potential_target) {
+                return Some(RunState::ShowVendor{ vendor: potential_target, mode : VendorMode::Sell });
+            }
+            let mut hostile = true;
+            if combat_stats.get(potential_target).is_some() {
+                if let Some(faction) = factions.get(potential_target) {
+                    let reaction = crate::raws::faction_reaction(
+                        &faction.name,
+                        "Player",
+                        &crate::raws::RAWS.lock().unwrap()
+                    );
+                    if reaction != Reaction::Attack { hostile = false; }
+                }
+            }
+            if !hostile {
                 // Note that we want to move the bystander
-                swap_entities.push((*potential_target, pos.x, pos.y));
+                swap_entities.push((potential_target, pos.x, pos.y));
 
                 // Move the player
                 pos.x = min(map.width-1 , max(0, pos.x + delta_x));
@@ -44,43 +57,61 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
                 let mut ppos = ecs.write_resource::<Point>();
                 ppos.x = pos.x;
                 ppos.y = pos.y;
+                return Some(RunState::Ticking);
             } else {
-                let target = combat_stats.get(*potential_target);
+                let target = combat_stats.get(potential_target);
                 if let Some(_target) = target {
-                    wants_to_melee.insert(entity, WantsToMelee{ target: *potential_target }).expect("Add target failed");
-                    return;
+                    wants_to_melee.insert(entity, WantsToMelee{ target: potential_target }).expect("Add target failed");
+                    return Some(RunState::Ticking);
                 }
             }
-            let door = doors.get_mut(*potential_target);
+            let door = doors.get_mut(potential_target);
             if let Some(door) = door {
                 door.open = true;
-                blocks_visibility.remove(*potential_target);
-                blocks_movement.remove(*potential_target);
-                let glyph = renderables.get_mut(*potential_target).unwrap();
+                blocks_visibility.remove(potential_target);
+                blocks_movement.remove(potential_target);
+                let glyph = renderables.get_mut(potential_target).unwrap();
                 glyph.glyph = to_cp437('/');
                 viewshed.dirty = true;
+                return Some(RunState::Ticking);
             }
-        }
+            None
+        });
 
-        if !map.blocked[destination_idx] {
+        if !crate::spatial::is_blocked(destination_idx) {
+            let old_idx = map.xy_idx(pos.x, pos.y);
             pos.x = min(map.width-1 , max(0, pos.x + delta_x));
             pos.y = min(map.height-1, max(0, pos.y + delta_y));
+            let new_idx = map.xy_idx(pos.x, pos.y);
             entity_moved.insert(entity, EntityMoved{}).expect("Unable to insert marker");
+            crate::spatial::move_entity(entity, old_idx, new_idx);
 
             viewshed.dirty = true;
             let mut ppos = ecs.write_resource::<Point>();
             ppos.x = pos.x;
             ppos.y = pos.y;
+            result = RunState::Ticking;
+            match map.tiles[destination_idx] {
+                TileType::DownStairs => result = RunState::NextLevel,
+                TileType::UpStairs => result = RunState::PreviousLevel,
+                _ => {}
+            }
         }
     }
 
     for m in swap_entities.iter() {
         let their_pos = positions.get_mut(m.0);
         if let Some(their_pos) = their_pos {
+            let old_idx = map.xy_idx(their_pos.x, their_pos.y);
             their_pos.x = m.1;
             their_pos.y = m.2;
+            let new_idx = map.xy_idx(their_pos.x, their_pos.y);
+            crate::spatial::move_entity(m.0, old_idx, new_idx);
+            result = RunState::Ticking;
         }
     }
+
+    result
 }
 
 pub fn try_next_level(ecs: &mut World) -> bool {
@@ -92,6 +123,19 @@ pub fn try_next_level(ecs: &mut World) -> bool {
     } else {
         let mut gamelog = ecs.fetch_mut::<GameLog>();
         gamelog.entries.push("There is no way down from here.".to_string());
+        false
+    }
+}
+
+pub fn try_previous_level(ecs: &mut World) -> bool {
+    let player_pos = ecs.fetch::<Point>();
+    let map = ecs.fetch::<Map>();
+    let player_idx = map.xy_idx(player_pos.x, player_pos.y);
+    if map.tiles[player_idx] == TileType::UpStairs {
+        true
+    } else {
+        let mut gamelog = ecs.fetch_mut::<GameLog>();
+        gamelog.entries.push("There is no way up from here.".to_string());
         false
     }
 }
@@ -123,7 +167,7 @@ fn get_item(ecs: &mut World) {
 fn skip_turn(ecs: &mut World) -> RunState {
     let player_entity = ecs.fetch::<Entity>();
     let viewshed_components = ecs.read_storage::<Viewshed>();
-    let monsters = ecs.read_storage::<Monster>();
+    let factions = ecs.read_storage::<Faction>();
 
     let worldmap_resource = ecs.fetch::<Map>();
 
@@ -131,13 +175,22 @@ fn skip_turn(ecs: &mut World) -> RunState {
     let viewshed = viewshed_components.get(*player_entity).unwrap();
     for tile in viewshed.visible_tiles.iter() {
         let idx = worldmap_resource.xy_idx(tile.x, tile.y);
-        for entity_id in worldmap_resource.tile_content[idx].iter() {
-            let mob = monsters.get(*entity_id);
-            match mob {
+        crate::spatial::for_each_tile_content(idx, |entity_id| {
+            let faction = factions.get(entity_id);
+            match faction {
                 None => {}
-                Some(_) => { can_heal = false; }
+                Some(faction) => {
+                    let reaction = crate::raws::faction_reaction(
+                        &faction.name,
+                        "Player",
+                        &crate::raws::RAWS.lock().unwrap()
+                    );
+                    if reaction == Reaction::Attack {
+                        can_heal = false;
+                    }
+                }
             }
-        }
+        });
     }
 
     let hunger_clocks = ecs.read_storage::<HungerClock>();
@@ -156,8 +209,36 @@ fn skip_turn(ecs: &mut World) -> RunState {
         pools.hit_points.current = i32::min(pools.hit_points.current + 1, pools.hit_points.max);
     }
 
+    RunState::Ticking
+}
 
-    RunState::PlayerTurn
+fn use_consumable_hotkey(gs: &mut State, key: i32) -> RunState {
+    use super::{Consumable, InBackpack, WantsToUseItem};
+
+    let consumables = gs.ecs.read_storage::<Consumable>();
+    let backpack = gs.ecs.read_storage::<InBackpack>();
+    let player_entity = gs.ecs.fetch::<Entity>();
+    let entities = gs.ecs.entities();
+    let mut carried_consumables = Vec::new();
+    for (entity, carried_by, _consumable) in (&entities, &backpack, &consumables).join() {
+        if carried_by.owner == *player_entity {
+            carried_consumables.push(entity);
+        }
+    }
+
+    if (key as usize) < carried_consumables.len() {
+        use crate::components::Ranged;
+        if let Some(ranged) = gs.ecs.read_storage::<Ranged>().get(carried_consumables[key as usize]) {
+            return RunState::ShowTargeting{ range: ranged.range, item: carried_consumables[key as usize] };
+        }
+        let mut intent = gs.ecs.write_storage::<WantsToUseItem>();
+        intent.insert(
+            *player_entity,
+            WantsToUseItem{ item: carried_consumables[key as usize], target: None }
+        ).expect("Unable to insert intent");
+        return RunState::Ticking;
+    }
+    RunState::Ticking
 }
 
 pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
@@ -187,32 +268,32 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
         Some(key) => match key {
             VirtualKeyCode::Left |
             VirtualKeyCode::Numpad4 |
-            VirtualKeyCode::H => try_move_player(-1, 0, &mut gs.ecs),
+            VirtualKeyCode::H => return try_move_player(-1, 0, &mut gs.ecs),
 
             VirtualKeyCode::Right |
             VirtualKeyCode::Numpad6 |
-            VirtualKeyCode::L => try_move_player(1, 0, &mut gs.ecs),
+            VirtualKeyCode::L => return try_move_player(1, 0, &mut gs.ecs),
 
             VirtualKeyCode::Up |
             VirtualKeyCode::Numpad8 |
-            VirtualKeyCode::K => try_move_player(0, -1, &mut gs.ecs),
+            VirtualKeyCode::K => return try_move_player(0, -1, &mut gs.ecs),
 
             VirtualKeyCode::Down |
             VirtualKeyCode::Numpad2 |
-            VirtualKeyCode::J => try_move_player(0, 1, &mut gs.ecs),
+            VirtualKeyCode::J => return try_move_player(0, 1, &mut gs.ecs),
 
             // Diagonals
             VirtualKeyCode::Numpad9 |
-            VirtualKeyCode::U => try_move_player(1, -1, &mut gs.ecs),
+            VirtualKeyCode::U => return try_move_player(1, -1, &mut gs.ecs),
 
             VirtualKeyCode::Numpad7 |
-            VirtualKeyCode::Y => try_move_player(-1, -1, &mut gs.ecs),
+            VirtualKeyCode::Y => return try_move_player(-1, -1, &mut gs.ecs),
 
             VirtualKeyCode::Numpad3 |
-            VirtualKeyCode::N => try_move_player(1, 1, &mut gs.ecs),
+            VirtualKeyCode::N => return try_move_player(1, 1, &mut gs.ecs),
 
             VirtualKeyCode::Numpad1 |
-            VirtualKeyCode::B => try_move_player(-1, 1, &mut gs.ecs),
+            VirtualKeyCode::B => return try_move_player(-1, 1, &mut gs.ecs),
 
             // Skip Turn
             VirtualKeyCode::Numpad5 |
@@ -222,6 +303,11 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             VirtualKeyCode::Period => {
                 if try_next_level(&mut gs.ecs) {
                     return RunState::NextLevel;
+                }
+            }
+            VirtualKeyCode::Comma => {
+                if try_previous_level(&mut gs.ecs) {
+                    return RunState::PreviousLevel;
                 }
             }
 
@@ -234,37 +320,11 @@ pub fn player_input(gs: &mut State, ctx: &mut BTerm) -> RunState {
             // Save and Quit
             VirtualKeyCode::Escape => return RunState::SaveGame,
 
+            // Cheating!
+            VirtualKeyCode::Backslash => return RunState::ShowCheatMenu,
+
             _ => { return RunState::AwaitingInput }
         },
     }
-    RunState::PlayerTurn
-}
-
-fn use_consumable_hotkey(gs: &mut State, key: i32) -> RunState {
-    use super::{Consumable, InBackpack, WantsToUseItem};
-
-    let consumables = gs.ecs.read_storage::<Consumable>();
-    let backpack = gs.ecs.read_storage::<InBackpack>();
-    let player_entity = gs.ecs.fetch::<Entity>();
-    let entities = gs.ecs.entities();
-    let mut carried_consumables = Vec::new();
-    for (entity, carried_by, _consumable) in (&entities, &backpack, &consumables).join() {
-        if carried_by.owner == *player_entity {
-            carried_consumables.push(entity);
-        }
-    }
-
-    if (key as usize) < carried_consumables.len() {
-        use crate::components::Ranged;
-        if let Some(ranged) = gs.ecs.read_storage::<Ranged>().get(carried_consumables[key as usize]) {
-            return RunState::ShowTargeting{ range: ranged.range, item: carried_consumables[key as usize] };
-        }
-        let mut intent = gs.ecs.write_storage::<WantsToUseItem>();
-        intent.insert(
-            *player_entity,
-            WantsToUseItem{ item: carried_consumables[key as usize], target: None }
-        ).expect("Unable to insert intent");
-        return RunState::PlayerTurn;
-    }
-    RunState::PlayerTurn
+    RunState::Ticking
 }

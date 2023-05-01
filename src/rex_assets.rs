@@ -1,4 +1,4 @@
-use bracket_lib::prelude::*;
+use bracket_lib::prelude::{embedded_resource, link_resource, XpFile, EMBED};
 
 embedded_resource!(SMALL_DUNGEON, "../resources/SmallDungeon_80x50.xp");
 embedded_resource!(WFC_DEMO_IMAGE1, "../resources/wfc-demo1.xp");

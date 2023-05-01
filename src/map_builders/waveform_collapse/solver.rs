@@ -1,6 +1,6 @@
 use super::{MapChunk, Map};
 use std::collections::HashSet;
-use bracket_lib::prelude::*;
+use bracket_lib::prelude::console;
 
 pub struct Solver {
     constraints: Vec<MapChunk>,

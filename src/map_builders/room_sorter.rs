@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, Rect };
-use bracket_lib::prelude::*;
-
+use bracket_lib::prelude::{RandomNumberGenerator, DistanceAlg, Point};
 #[allow(dead_code)]
 pub enum RoomSort { LEFTMOST, RIGHTMOST, TOPMOST, BOTTOMMOST, CENTRAL }
 

@@ -3,6 +3,8 @@ use serde::{Serialize, Deserialize};
 #[derive(PartialEq, Eq, Hash, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
     Wall,
+    Stalactite,
+    Stalagmite,
     Floor,
     DownStairs,
     Road,
@@ -11,21 +13,23 @@ pub enum TileType {
     DeepWater,
     WoodFloor,
     Bridge,
-    Gravel
+    Gravel,
+    UpStairs
 }
 
 pub fn tile_walkable(tt : TileType) -> bool {
     match tt {
         TileType::Floor | TileType::DownStairs | TileType::Road | TileType::Grass |
-        TileType::ShallowWater | TileType::WoodFloor | TileType::Bridge | TileType::Gravel
-        => true,
+        TileType::ShallowWater | TileType::WoodFloor | TileType::Bridge | TileType::Gravel |
+        TileType::UpStairs
+            => true,
         _ => false
     }
 }
 
 pub fn tile_opaque(tt : TileType) -> bool {
     match tt {
-        TileType::Wall => true,
+        TileType::Wall | TileType::Stalactite | TileType::Stalagmite => true,
         _ => false
     }
 }

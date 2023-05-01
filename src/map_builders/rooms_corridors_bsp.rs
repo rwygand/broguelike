@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, Rect, draw_corridor };
 use bracket_lib::prelude::RandomNumberGenerator;
-
 pub struct BspCorridors {}
 
 impl MetaMapBuilder for BspCorridors {

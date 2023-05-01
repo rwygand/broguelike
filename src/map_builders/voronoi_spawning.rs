@@ -1,5 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, TileType, spawner};
-use bracket_lib::prelude::{ RandomNumberGenerator, NoiseType, CellularDistanceFunction, FastNoise };
+use bracket_lib::prelude::{RandomNumberGenerator, NoiseType, CellularDistanceFunction, FastNoise};
 use std::collections::HashMap;
 
 pub struct VoronoiSpawning {}

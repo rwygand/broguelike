@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, spawner};
 use bracket_lib::prelude::RandomNumberGenerator;
-
 pub struct RoomBasedSpawner {}
 
 impl MetaMapBuilder for RoomBasedSpawner {

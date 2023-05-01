@@ -1,3 +1,4 @@
+use bracket_lib::prelude::{console, RandomNumberGenerator};
 use super::{Map, Rect, TileType, Position, spawner, SHOW_MAPGEN_VISUALIZER};
 use specs::prelude::*;
 mod simple_map;
@@ -28,6 +29,12 @@ mod rooms_corridors_nearest;
 mod rooms_corridors_lines;
 mod room_corridor_spawner;
 mod door_placement;
+mod town;
+mod forest;
+mod limestone_cavern;
+mod area_ending_point;
+use forest::forest_builder;
+use limestone_cavern::*;
 use distant_exit::DistantExit;
 use simple_map::SimpleMapBuilder;
 use bsp_dungeon::BspDungeonBuilder;
@@ -56,9 +63,8 @@ use rooms_corridors_nearest::NearestCorridors;
 use rooms_corridors_lines::StraightLineCorridors;
 use room_corridor_spawner::CorridorSpawner;
 use door_placement::DoorPlacement;
-use bracket_lib::prelude::{console, RandomNumberGenerator};
-mod town;
 use town::town_builder;
+use area_ending_point::*;
 
 pub struct BuilderMap {
     pub spawn_list : Vec<(usize, String)>,
@@ -299,6 +305,10 @@ pub fn level_builder(new_depth: i32, rng: &mut RandomNumberGenerator, width: i32
     console::log(format!("Depth: {}", new_depth));
     match new_depth {
         1 => town_builder(new_depth, rng, width, height),
+        2 => forest_builder(new_depth, rng, width, height),
+        3 => limestone_cavern_builder(new_depth, rng, width, height),
+        4 => limestone_deep_cavern_builder(new_depth, rng, width, height),
+        5 => limestone_transition_builder(new_depth, rng, width, height),
         _ => random_builder(new_depth, rng, width, height)
     }
 }

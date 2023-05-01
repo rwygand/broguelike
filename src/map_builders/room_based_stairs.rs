@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, TileType};
 use bracket_lib::prelude::RandomNumberGenerator;
-
 pub struct RoomBasedStairs {}
 
 impl MetaMapBuilder for RoomBasedStairs {

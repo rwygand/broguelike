@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, Position};
 use bracket_lib::prelude::RandomNumberGenerator;
-
 pub struct RoomBasedStartingPosition {}
 
 impl MetaMapBuilder for RoomBasedStartingPosition {

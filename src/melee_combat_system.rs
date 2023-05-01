@@ -1,9 +1,8 @@
-use bracket_lib::prelude::{BLACK, BLUE, CYAN, ORANGE, RandomNumberGenerator, RGB, to_cp437};
+use bracket_lib::prelude::*;
 use specs::prelude::*;
-use crate::gamesystem::skill_bonus;
 use super::{Attributes, Skills, WantsToMelee, Name, SufferDamage, gamelog::GameLog,
-            particle_system::ParticleBuilder, Position, HungerClock, HungerState, Pools,
-            Skill, Equipped, MeleeWeapon, EquipmentSlot, WeaponAttribute, Wearable, NaturalAttackDefense};
+    particle_system::ParticleBuilder, Position, HungerClock, HungerState, Pools, skill_bonus,
+    Skill, Equipped, MeleeWeapon, EquipmentSlot, WeaponAttribute, Wearable, NaturalAttackDefense};
 
 pub struct MeleeCombatSystem {}
 
@@ -24,13 +23,14 @@ impl<'a> System<'a> for MeleeCombatSystem {
                         ReadStorage<'a, Equipped>,
                         ReadStorage<'a, MeleeWeapon>,
                         ReadStorage<'a, Wearable>,
-                        ReadStorage<'a, NaturalAttackDefense>
-    );
+                        ReadStorage<'a, NaturalAttackDefense>,
+                        ReadExpect<'a, Entity>
+                      );
 
     fn run(&mut self, data : Self::SystemData) {
         let (entities, mut log, mut wants_melee, names, attributes, skills, mut inflict_damage,
             mut particle_builder, positions, hunger_clock, pools, mut rng,
-            equipped_items, meleeweapons, wearables, natural) = data;
+            equipped_items, meleeweapons, wearables, natural, player_entity) = data;
 
         for (entity, wants_melee, name, attacker_attributes, attacker_skills, attacker_pools) in (&entities, &wants_melee, &names, &attributes, &skills, &pools).join() {
             // Are the attacker and defender alive? Only attack if they are
@@ -66,8 +66,8 @@ impl<'a> System<'a> for MeleeCombatSystem {
 
                 let natural_roll = rng.roll_dice(1, 20);
                 let attribute_hit_bonus = if weapon_info.attribute == WeaponAttribute::Might
-                { attacker_attributes.might.bonus }
-                else { attacker_attributes.quickness.bonus};
+                    { attacker_attributes.might.bonus }
+                    else { attacker_attributes.quickness.bonus};
                 let skill_hit_bonus = skill_bonus(Skill::Melee, &*attacker_skills);
                 let weapon_hit_bonus = weapon_info.hit_bonus;
                 let mut status_hit_bonus = 0;
@@ -104,7 +104,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
 
                     let damage = i32::max(0, base_damage + attr_damage_bonus + skill_hit_bonus +
                         skill_damage_bonus + weapon_damage_bonus);
-                    SufferDamage::new_damage(&mut inflict_damage, wants_melee.target, damage);
+                    SufferDamage::new_damage(&mut inflict_damage, wants_melee.target, damage, entity == *player_entity);
                     log.entries.push(format!("{} hits {}, for {} hp.", &name.name, &target_name.name, damage));
                     if let Some(pos) = positions.get(wants_melee.target) {
                         particle_builder.request(pos.x, pos.y, RGB::named(ORANGE), RGB::named(BLACK), to_cp437('‼'), 200.0);

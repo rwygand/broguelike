@@ -1,6 +1,6 @@
 use specs::prelude::*;
 use super::{ ParticleLifetime, Position, Renderable };
-use bracket_lib::prelude::*;
+use bracket_lib::prelude::{RGB, BTerm, FontCharType};
 
 pub fn cull_dead_particles(ecs : &mut World, ctx : &BTerm) {
     let mut dead_particles : Vec<Entity> = Vec::new();

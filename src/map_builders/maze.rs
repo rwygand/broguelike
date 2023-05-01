@@ -1,6 +1,5 @@
 use super::{Map,  InitialMapBuilder, BuilderMap, TileType};
 use bracket_lib::prelude::RandomNumberGenerator;
-
 pub struct MazeBuilder {}
 
 impl InitialMapBuilder for MazeBuilder {

@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, TileType};
-use bracket_lib::prelude::{ RandomNumberGenerator, DijkstraMap };
-
+use bracket_lib::prelude::{DijkstraMap, RandomNumberGenerator};
 pub struct CullUnreachable {}
 
 impl MetaMapBuilder for CullUnreachable {

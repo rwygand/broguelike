@@ -1,6 +1,5 @@
 use super::{InitialMapBuilder, MetaMapBuilder, BuilderMap, TileType, Position, Symmetry, paint};
-use bracket_lib::prelude::*;
-
+use bracket_lib::prelude::{RandomNumberGenerator, line2d, LineAlg, Point};
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]
 pub enum DLAAlgorithm { WalkInwards, WalkOutwards, CentralAttractor }

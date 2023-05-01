@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, TileType, Rect};
-use bracket_lib::prelude::{DistanceAlg, Point, RandomNumberGenerator};
-
+use bracket_lib::prelude::{RandomNumberGenerator, DistanceAlg, Point};
 pub struct RoomDrawer {}
 
 impl MetaMapBuilder for RoomDrawer {

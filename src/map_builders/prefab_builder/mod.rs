@@ -1,9 +1,9 @@
 use super::{InitialMapBuilder, MetaMapBuilder, BuilderMap, TileType, Position};
-use bracket_lib::prelude::{RandomNumberGenerator, rex, console};
-pub mod prefab_levels;
+use bracket_lib::prelude::RandomNumberGenerator;pub mod prefab_levels;
 pub mod prefab_sections;
 pub mod prefab_rooms;
 use std::collections::HashSet;
+use bracket_lib::prelude::{console, XpFile};
 
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]
@@ -82,6 +82,7 @@ impl PrefabBuilder {
         match ch {
             ' ' => build_data.map.tiles[idx] = TileType::Floor,
             '#' => build_data.map.tiles[idx] = TileType::Wall,
+            '≈' => build_data.map.tiles[idx] = TileType::DeepWater,
             '@' => {
                 let x = idx as i32 % build_data.map.width;
                 let y = idx as i32 / build_data.map.width;
@@ -97,6 +98,10 @@ impl PrefabBuilder {
                 build_data.map.tiles[idx] = TileType::Floor;
                 build_data.spawn_list.push((idx, "Orc".to_string()));
             }
+            'O' => {
+                build_data.map.tiles[idx] = TileType::Floor;
+                build_data.spawn_list.push((idx, "Orc Leader".to_string()));
+            }
             '^' => {
                 build_data.map.tiles[idx] = TileType::Floor;
                 build_data.spawn_list.push((idx, "Bear Trap".to_string()));
@@ -109,6 +114,10 @@ impl PrefabBuilder {
                 build_data.map.tiles[idx] = TileType::Floor;
                 build_data.spawn_list.push((idx, "Health Potion".to_string()));
             }
+            '☼' => {
+                build_data.map.tiles[idx] = TileType::Floor;
+                build_data.spawn_list.push((idx, "Watch Fire".to_string()));
+            }
             _ => {
                 console::log(format!("Unknown glyph loading map: {}", (ch as u8) as char));
             }
@@ -117,7 +126,7 @@ impl PrefabBuilder {
 
     #[allow(dead_code)]
     fn load_rex_map(&mut self, path: &str, build_data : &mut BuilderMap) {
-        let xp_file = rex::XpFile::from_resource(path).unwrap();
+        let xp_file = XpFile::from_resource(path).unwrap();
 
         for layer in &xp_file.layers {
             for y in 0..layer.height {

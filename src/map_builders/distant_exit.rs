@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, TileType};
-use bracket_lib::prelude::{ RandomNumberGenerator, DijkstraMap };
-
+use bracket_lib::prelude::{DijkstraMap, RandomNumberGenerator};
 pub struct DistantExit {}
 
 impl MetaMapBuilder for DistantExit {
@@ -23,7 +22,7 @@ impl DistantExit {
         );
         build_data.map.populate_blocked();
         let map_starts : Vec<usize> = vec![start_idx];
-        let dijkstra_map = DijkstraMap::new(build_data.map.width as usize, build_data.map.height as usize, &map_starts , &build_data.map, 1000.0);
+        let dijkstra_map = DijkstraMap::new(build_data.map.width as usize, build_data.map.height as usize, &map_starts , &build_data.map, 3000.0);
         let mut exit_tile = (0, 0.0f32);
         for (i, tile) in build_data.map.tiles.iter_mut().enumerate() {
             if *tile == TileType::Floor {

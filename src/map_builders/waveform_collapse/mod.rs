@@ -1,6 +1,5 @@
 use super::{MetaMapBuilder, BuilderMap, Map, TileType};
-use bracket_lib::prelude::RandomNumberGenerator;
-mod common;
+use bracket_lib::prelude::RandomNumberGenerator;mod common;
 use common::*;
 mod constraints;
 use constraints::*;

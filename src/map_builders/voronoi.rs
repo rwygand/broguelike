@@ -1,6 +1,5 @@
 use super::{InitialMapBuilder, BuilderMap, TileType};
-use bracket_lib::prelude::*;
-
+use bracket_lib::prelude::{RandomNumberGenerator, DistanceAlg, Point};
 #[derive(PartialEq, Copy, Clone)]
 #[allow(dead_code)]
 pub enum DistanceAlgorithm { Pythagoras, Manhattan, Chebyshev }

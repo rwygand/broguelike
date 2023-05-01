@@ -1,12 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use specs::prelude::*;
 use crate::components::*;
-use super::{Raws};
-use bracket_lib::prelude::*;
+use super::{Raws, faction_structs::Reaction};
 use crate::random_table::{RandomTable};
-use crate::gamesystem::{attr_bonus, npc_hp, mana_at_level};
+use crate::{attr_bonus, npc_hp, mana_at_level};
 use regex::Regex;
 use specs::saveload::{MarkedBuilder, SimpleMarker};
+use bracket_lib::prelude::*;
 
 pub fn parse_dice_string(dice : &str) -> (i32, i32, i32) {
     lazy_static! {
@@ -41,16 +41,27 @@ pub struct RawMaster {
     raws : Raws,
     item_index : HashMap<String, usize>,
     mob_index : HashMap<String, usize>,
-    prop_index : HashMap<String, usize>
+    prop_index : HashMap<String, usize>,
+    loot_index : HashMap<String, usize>,
+    faction_index : HashMap<String, HashMap<String, Reaction>>
 }
 
 impl RawMaster {
     pub fn empty() -> RawMaster {
         RawMaster {
-            raws : Raws{ items: Vec::new(), mobs: Vec::new(), props: Vec::new(), spawn_table: Vec::new() },
+            raws : Raws{
+                items: Vec::new(),
+                mobs: Vec::new(),
+                props: Vec::new(),
+                spawn_table: Vec::new(),
+                loot_tables: Vec::new(),
+                faction_table : Vec::new(),
+            },
             item_index : HashMap::new(),
             mob_index : HashMap::new(),
             prop_index : HashMap::new(),
+            loot_index : HashMap::new(),
+            faction_index : HashMap::new()
         }
     }
 
@@ -85,7 +96,46 @@ impl RawMaster {
                 console::log(format!("WARNING - Spawn tables references unspecified entity {}", spawn.name));
             }
         }
+
+        for (i,loot) in self.raws.loot_tables.iter().enumerate() {
+            self.loot_index.insert(loot.name.clone(), i);
+        }
+
+        for faction in self.raws.faction_table.iter() {
+            let mut reactions : HashMap<String, Reaction> = HashMap::new();
+            for other in faction.responses.iter() {
+                reactions.insert(
+                    other.0.clone(),
+                    match other.1.as_str() {
+                        "ignore" => Reaction::Ignore,
+                        "flee" => Reaction::Flee,
+                        _ => Reaction::Attack
+                    }
+                );
+            }
+            self.faction_index.insert(faction.name.clone(), reactions);
+        }
     }
+}
+
+#[inline(always)]
+pub fn faction_reaction(my_faction : &str, their_faction : &str, raws : &RawMaster) -> Reaction {
+    //println!("Looking for reaction to [{}] by [{}]", my_faction, their_faction);
+    if raws.faction_index.contains_key(my_faction) {
+        let mf = &raws.faction_index[my_faction];
+        if mf.contains_key(their_faction) {
+            //println!("  :  {:?}", mf[their_faction]);
+            return mf[their_faction];
+        } else if mf.contains_key("Default") {
+            //println!("  :  {:?}", mf["Default"]);
+            return mf["Default"];
+        } else {
+            //println!("   : IGNORE");
+            return Reaction::Ignore;
+        }
+    }
+    //println!("   : IGNORE");
+    Reaction::Ignore
 }
 
 fn find_slot_for_equippable_item(tag : &str, raws: &RawMaster) -> EquipmentSlot {
@@ -100,6 +150,63 @@ fn find_slot_for_equippable_item(tag : &str, raws: &RawMaster) -> EquipmentSlot 
         return string_to_slot(&wearable.slot);
     }
     panic!("Trying to equip {}, but it has no slot tag.", tag);
+}
+
+pub fn get_vendor_items(categories: &[String], raws : &RawMaster) -> Vec<(String, f32)> {
+    let mut result : Vec<(String, f32)> = Vec::new();
+
+    for item in raws.raws.items.iter() {
+        if let Some(cat) = &item.vendor_category {
+            if categories.contains(cat) && item.base_value.is_some() {
+                result.push((
+                    item.name.clone(),
+                    item.base_value.unwrap()
+                ));
+            }
+        }
+    }
+
+    result
+}
+
+pub fn get_scroll_tags() -> Vec<String> {
+    let raws = &super::RAWS.lock().unwrap();
+    let mut result = Vec::new();
+
+    for item in raws.raws.items.iter() {
+        if let Some(magic) = &item.magic {
+            if &magic.naming == "scroll" {
+                result.push(item.name.clone());
+            }
+        }
+    }
+
+    result
+}
+
+pub fn get_potion_tags() -> Vec<String> {
+    let raws = &super::RAWS.lock().unwrap();
+    let mut result = Vec::new();
+
+    for item in raws.raws.items.iter() {
+        if let Some(magic) = &item.magic {
+            if &magic.naming == "potion" {
+                result.push(item.name.clone());
+            }
+        }
+    }
+
+    result
+}
+
+pub fn is_tag_magic(tag : &str) -> bool {
+    let raws = &super::RAWS.lock().unwrap();
+    if raws.item_index.contains_key(tag) {
+        let item_template = &raws.raws.items[raws.item_index[tag]];
+        item_template.magic.is_some()
+    } else {
+        false
+    }
 }
 
 fn spawn_position<'a>(pos : SpawnType, new_entity : EntityBuilder<'a>, tag : &str, raws: &RawMaster) -> EntityBuilder<'a> {
@@ -142,6 +249,11 @@ pub fn spawn_named_item(raws: &RawMaster, ecs : &mut World, key : &str, pos : Sp
     if raws.item_index.contains_key(key) {
         let item_template = &raws.raws.items[raws.item_index[key]];
 
+        let dm = ecs.fetch::<crate::map::MasterDungeonMap>();
+        let scroll_names = dm.scroll_mappings.clone();
+        let potion_names = dm.potion_mappings.clone();
+        let identified = dm.identified_items.clone();
+        std::mem::drop(dm);
         let mut eb = ecs.create_entity().marked::<SimpleMarker<SerializeMe>>();
 
         // Spawn in the specified location
@@ -154,7 +266,11 @@ pub fn spawn_named_item(raws: &RawMaster, ecs : &mut World, key : &str, pos : Sp
 
         eb = eb.with(Name{ name : item_template.name.clone() });
 
-        eb = eb.with(crate::components::Item{});
+        eb = eb.with(crate::components::Item{
+            initiative_penalty : item_template.initiative_penalty.unwrap_or(0.0),
+            weight_lbs : item_template.weight_lbs.unwrap_or(0.0),
+            base_value : item_template.base_value.unwrap_or(0.0)
+        });
 
         if let Some(consumable) = &item_template.consumable {
             eb = eb.with(crate::components::Consumable{});
@@ -169,6 +285,7 @@ pub fn spawn_named_item(raws: &RawMaster, ecs : &mut World, key : &str, pos : Sp
                     "area_of_effect" => { eb = eb.with(AreaOfEffect{ radius: effect.1.parse::<i32>().unwrap() }) }
                     "confusion" => { eb = eb.with(Confusion{ turns: effect.1.parse::<i32>().unwrap() }) }
                     "magic_mapping" => { eb = eb.with(MagicMapper{}) }
+                    "town_portal" => { eb = eb.with(TownPortal{}) }
                     "food" => { eb = eb.with(ProvidesFood{}) }
                     _ => {
                         console::log(format!("Warning: consumable effect {} not implemented.", effect_name));
@@ -200,6 +317,29 @@ pub fn spawn_named_item(raws: &RawMaster, ecs : &mut World, key : &str, pos : Sp
             eb = eb.with(Wearable{ slot, armor_class: wearable.armor_class });
         }
 
+        if let Some(magic) = &item_template.magic {
+            let class = match magic.class.as_str() {
+                "rare" => MagicItemClass::Rare,
+                "legendary" => MagicItemClass::Legendary,
+                _ => MagicItemClass::Common
+            };
+            eb = eb.with(MagicItem{ class });
+
+            if !identified.contains(&item_template.name) {
+                match magic.naming.as_str() {
+                    "scroll" => {
+                        eb = eb.with(ObfuscatedName{ name : scroll_names[&item_template.name].clone() });
+                    }
+                    "potion" => {
+                        eb = eb.with(ObfuscatedName{ name: potion_names[&item_template.name].clone() });
+                    }
+                    _ => {
+                        eb = eb.with(ObfuscatedName{ name : magic.naming.clone() });
+                    }
+                }
+            }
+        }
+
         return Some(eb.build());
     }
     None
@@ -214,6 +354,9 @@ pub fn spawn_named_mob(raws: &RawMaster, ecs : &mut World, key : &str, pos : Spa
         // Spawn in the specified location
         eb = spawn_position(pos, eb, key, raws);
 
+        // Initiative of 2
+        eb = eb.with(Initiative{current: 2});
+
         // Renderable
         if let Some(renderable) = &mob_template.renderable {
             eb = eb.with(get_renderable_component(renderable));
@@ -221,11 +364,10 @@ pub fn spawn_named_mob(raws: &RawMaster, ecs : &mut World, key : &str, pos : Spa
 
         eb = eb.with(Name{ name : mob_template.name.clone() });
 
-        match mob_template.ai.as_ref() {
-            "melee" => eb = eb.with(Monster{}),
-            "bystander" => eb = eb.with(Bystander{}),
-            "vendor" => eb = eb.with(Vendor{}),
-            _ => {}
+        match mob_template.movement.as_ref() {
+            "random" => eb = eb.with(MoveMode{ mode: Movement::Random }),
+            "random_waypoint" => eb = eb.with(MoveMode{ mode: Movement::RandomWaypoint{ path: None } }),
+            _ => eb = eb.with(MoveMode{ mode: Movement::Static })
         }
 
         if let Some(quips) = &mob_template.quips {
@@ -270,9 +412,20 @@ pub fn spawn_named_mob(raws: &RawMaster, ecs : &mut World, key : &str, pos : Spa
             level: mob_level,
             xp: 0,
             hit_points : Pool{ current: mob_hp, max: mob_hp },
-            mana: Pool{current: mob_mana, max: mob_mana}
+            mana: Pool{current: mob_mana, max: mob_mana},
+            total_weight : 0.0,
+            total_initiative_penalty : 0.0,
+            gold : if let Some(gold) = &mob_template.gold {
+                    let mut rng = RandomNumberGenerator::new();
+                    let (n, d, b) = parse_dice_string(&gold);
+                    (rng.roll_dice(n, d) + b) as f32
+                } else {
+                    0.0
+                },
+            god_mode : false
         };
         eb = eb.with(pools);
+        eb = eb.with(EquipmentChanged{});
 
         let mut skills = Skills{ skills: HashMap::new() };
         skills.skills.insert(Skill::Melee, 1);
@@ -311,6 +464,24 @@ pub fn spawn_named_mob(raws: &RawMaster, ecs : &mut World, key : &str, pos : Spa
                 }
             }
             eb = eb.with(nature);
+        }
+
+        if let Some(loot) = &mob_template.loot_table {
+            eb = eb.with(LootTable{table: loot.clone()});
+        }
+
+        if let Some(light) = &mob_template.light {
+            eb = eb.with(LightSource{ range: light.range, color : RGB::from_hex(&light.color).expect("Bad color") });
+        }
+
+        if let Some(faction) = &mob_template.faction {
+            eb = eb.with(Faction{ name: faction.clone() });
+        } else {
+            eb = eb.with(Faction{ name : "Mindless".to_string() })
+        }
+
+        if let Some(vendor) = &mob_template.vendor {
+            eb = eb.with(Vendor{ categories : vendor.clone() });
         }
 
         let new_mob = eb.build();
@@ -365,6 +536,10 @@ pub fn spawn_named_prop(raws: &RawMaster, ecs : &mut World, key : &str, pos : Sp
                 }
             }
         }
+        if let Some(light) = &prop_template.light {
+            eb = eb.with(LightSource{ range: light.range, color : RGB::from_hex(&light.color).expect("Bad color") });
+            eb = eb.with(Viewshed{ range: light.range, dirty: true, visible_tiles: Vec::new() });
+        }
 
 
         return Some(eb.build());
@@ -402,4 +577,18 @@ pub fn get_spawn_table_for_depth(raws: &RawMaster, depth: i32) -> RandomTable {
     }
 
     rt
+}
+
+pub fn get_item_drop(raws: &RawMaster, rng : &mut RandomNumberGenerator, table: &str) -> Option<String> {
+    if raws.loot_index.contains_key(table) {
+        let mut rt = RandomTable::new();
+        let available_options = &raws.raws.loot_tables[raws.loot_index[table]];
+        for item in available_options.drops.iter() {
+            rt = rt.add(item.name.clone(), item.weight);
+        }
+        let result =rt.roll(rng);
+        return Some(result);
+    }
+
+    None
 }
