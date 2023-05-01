@@ -1,6 +1,7 @@
+#![allow(deprecated)]
 use specs::prelude::*;
 use specs_derive::*;
-use bracket_lib::prelude::{RGB, Point, FontCharType};
+use bracket_lib::prelude::{RGB};
 use serde::{Serialize, Deserialize};
 use specs::saveload::{Marker, ConvertSaveload};
 use specs::error::NoError;
@@ -21,7 +22,7 @@ pub struct OtherLevelPosition {
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Renderable {
-    pub glyph: FontCharType,
+    pub glyph: bracket_lib::prelude::FontCharType,
     pub fg: RGB,
     pub bg: RGB,
     pub render_order : i32
@@ -32,7 +33,7 @@ pub struct Player {}
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Viewshed {
-    pub visible_tiles : Vec<Point>,
+    pub visible_tiles : Vec<bracket_lib::prelude::Point>,
     pub range : i32,
     pub dirty : bool
 }
@@ -188,10 +189,21 @@ pub struct MagicItem {
 }
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct AttributeBonus {
+    pub might : Option<i32>,
+    pub fitness : Option<i32>,
+    pub quickness : Option<i32>,
+    pub intelligence : Option<i32>
+}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct CursedItem {}
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
-pub struct Consumable {}
+pub struct Consumable {
+    pub max_charges : i32,
+    pub charges : i32
+}
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct ProvidesRemoveCurse {}
@@ -214,9 +226,17 @@ pub struct AreaOfEffect {
     pub radius : i32
 }
 
-#[derive(Component, Debug, ConvertSaveload, Clone)]
-pub struct Confusion {
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct Confusion {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct Duration {
     pub turns : i32
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct StatusEffect {
+    pub target : Entity
 }
 
 #[derive(Component, Debug, ConvertSaveload, Clone)]
@@ -246,7 +266,7 @@ pub struct WantsToPickupItem {
 #[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToUseItem {
     pub item : Entity,
-    pub target : Option<Point>
+    pub target : Option<bracket_lib::prelude::Point>
 }
 
 #[derive(Component, Debug, ConvertSaveload, Clone)]
@@ -313,14 +333,14 @@ pub struct ParticleLifetime {
 
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct SpawnParticleLine {
-    pub glyph : FontCharType,
+    pub glyph : bracket_lib::prelude::FontCharType,
     pub color : RGB,
     pub lifetime_ms : f32
 }
 
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct SpawnParticleBurst {
-    pub glyph : FontCharType,
+    pub glyph : bracket_lib::prelude::FontCharType,
     pub color : RGB,
     pub lifetime_ms : f32
 }

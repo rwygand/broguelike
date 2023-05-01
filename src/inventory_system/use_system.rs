@@ -1,9 +1,6 @@
 use specs::prelude::*;
-use crate::{
-    effects::*,
-    map::Map,
-    components::*,
-};
+use super::{Name, WantsToUseItem,Map, AreaOfEffect, EquipmentChanged, IdentifiedItem};
+use crate::effects::*;
 
 pub struct ItemUseSystem {}
 

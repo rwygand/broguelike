@@ -1,5 +1,6 @@
 use bracket_lib::prelude::*;
 use specs::prelude::*;
+use crate::{Duration, StatusEffect};
 use super::{Pools, gamelog::GameLog, Map, Name, Position, State, InBackpack,
     Viewshed, RunState, Equipped, HungerClock, HungerState, rex_assets::RexAssets,
     Hidden, camera, Attributes, Attribute, Consumable, VendorMode, Item, Vendor,
@@ -28,7 +29,15 @@ pub fn get_item_display_name(ecs: &World, item : Entity) -> String {
         if ecs.read_storage::<MagicItem>().get(item).is_some() {
             let dm = ecs.fetch::<crate::map::MasterDungeonMap>();
             if dm.identified_items.contains(&name.name) {
-                name.name.clone()
+                if let Some(c) = ecs.read_storage::<Consumable>().get(item) {
+                    if c.max_charges > 1 {
+                        format!("{} ({})", name.name.clone(), c.charges).to_string()
+                    } else {
+                        name.name.clone()
+                    }
+                } else {
+                    name.name.clone()
+                }
             } else if let Some(obfuscated) = ecs.read_storage::<ObfuscatedName>().get(item) {
                 obfuscated.name.clone()
             } else {
@@ -52,8 +61,6 @@ pub fn draw_hollow_box(
     fg: RGB,
     bg: RGB,
 ) {
-    use to_cp437;
-
     console.set(sx, sy, fg, bg, to_cp437('┌'));
     console.set(sx + width, sy, fg, bg, to_cp437('┐'));
     console.set(sx, sy + height, fg, bg, to_cp437('└'));
@@ -82,7 +89,6 @@ fn draw_attribute(name : &str, attribute : &Attribute, y : i32, ctx: &mut BTerm)
 }
 
 pub fn draw_ui(ecs: &World, ctx : &mut BTerm) {
-    use to_cp437;
     let box_gray : RGB = RGB::from_hex("#999999").expect("Oops");
     let black = RGB::named(BLACK);
     let white = RGB::named(WHITE);
@@ -169,13 +175,38 @@ pub fn draw_ui(ecs: &World, ctx : &mut BTerm) {
     }
 
     // Status
+    let mut y = 44;
     let hunger = ecs.read_storage::<HungerClock>();
     let hc = hunger.get(*player_entity).unwrap();
     match hc.state {
-        HungerState::WellFed => ctx.print_color(50, 44, RGB::named(GREEN), RGB::named(BLACK), "Well Fed"),
+        HungerState::WellFed => {
+            ctx.print_color(50, y, RGB::named(GREEN), RGB::named(BLACK), "Well Fed");
+            y -= 1;
+        }
         HungerState::Normal => {}
-        HungerState::Hungry => ctx.print_color(50, 44, RGB::named(ORANGE), RGB::named(BLACK), "Hungry"),
-        HungerState::Starving => ctx.print_color(50, 44, RGB::named(RED), RGB::named(BLACK), "Starving"),
+        HungerState::Hungry => {
+            ctx.print_color(50, y, RGB::named(ORANGE), RGB::named(BLACK), "Hungry");
+            y -= 1;
+        }
+        HungerState::Starving => {
+            ctx.print_color(50, y, RGB::named(RED), RGB::named(BLACK), "Starving");
+            y -= 1;
+        }
+    }
+    let statuses = ecs.read_storage::<StatusEffect>();
+    let durations = ecs.read_storage::<Duration>();
+    let names = ecs.read_storage::<Name>();
+    for (status, duration, name) in (&statuses, &durations, &names).join() {
+        if status.target == *player_entity {
+            ctx.print_color(
+                50,
+                y,
+                RGB::named(RED),
+                RGB::named(BLACK),
+                &format!("{} ({})", name.name, duration.turns)
+            );
+            y -= 1;
+        }
     }
 
     // Draw the log
@@ -228,8 +259,6 @@ impl Tooltip {
 }
 
 fn draw_tooltips(ecs: &World, ctx : &mut BTerm) {
-    use to_cp437;
-
     let (min_x, _max_x, min_y, _max_y) = camera::get_screen_bounds(ecs, ctx);
     let map = ecs.fetch::<Map>();
     let positions = ecs.read_storage::<Position>();
@@ -279,6 +308,16 @@ fn draw_tooltips(ecs: &World, ctx : &mut BTerm) {
             let stat = pools.get(entity);
             if let Some(stat) = stat {
                 tip.add(format!("Level: {}", stat.level));
+            }
+
+            // Status effects
+            let statuses = ecs.read_storage::<StatusEffect>();
+            let durations = ecs.read_storage::<Duration>();
+            let names = ecs.read_storage::<Name>();
+            for (status, duration, name) in (&statuses, &durations, &names).join() {
+                if status.target == entity {
+                    tip.add(format!("{} ({})", name.name, duration.turns));
+                }
             }
 
             tip_boxes.push(tip);

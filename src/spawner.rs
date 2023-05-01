@@ -6,7 +6,7 @@ use super::{Pools, Pool, Player, Renderable, Name, Position, Viewshed, Rect,
     OtherLevelPosition, MasterDungeonMap, EntryTrigger, TeleportTo, SingleActivation };
 use specs::saveload::{MarkedBuilder, SimpleMarker};
 use std::collections::HashMap;
-use crate::{attr_bonus, player_hp_at_level, mana_at_level};
+use crate::{attr_bonus, player_hp_at_level, mana_at_level, StatusEffect, Duration, AttributeBonus};
 
 /// Spawns the player and returns his/her entity object.
 pub fn player(ecs : &mut World, player_x : i32, player_y : i32) -> Entity {
@@ -65,6 +65,21 @@ pub fn player(ecs : &mut World, player_x : i32, player_y : i32) -> Entity {
     spawn_named_entity(&RAWS.lock().unwrap(), ecs, "Stained Tunic", SpawnType::Equipped{by : player});
     spawn_named_entity(&RAWS.lock().unwrap(), ecs, "Torn Trousers", SpawnType::Equipped{by : player});
     spawn_named_entity(&RAWS.lock().unwrap(), ecs, "Old Boots", SpawnType::Equipped{by : player});
+    //spawn_named_entity(&RAWS.lock().unwrap(), ecs, "Gauntlets of Ogre Power", SpawnType::Carried{by : player});
+
+    // Starting hangover
+    ecs.create_entity()
+        .with(StatusEffect{ target : player })
+        .with(Duration{ turns:10 })
+        .with(Name{ name: "Hangover".to_string() })
+        .with(AttributeBonus{
+            might : Some(-1),
+            fitness : None,
+            quickness : Some(-1),
+            intelligence : Some(-1)
+        })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
 
     player
 }

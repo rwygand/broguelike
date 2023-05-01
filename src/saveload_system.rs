@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 use specs::prelude::*;
 use specs::saveload::{SimpleMarker, SimpleMarkerAllocator, SerializeComponents, DeserializeComponents, MarkedBuilder};
 use specs::error::NoError;
@@ -5,7 +6,6 @@ use super::components::*;
 use std::fs::File;
 use std::path::Path;
 use std::fs;
-use bracket_lib::prelude::Point;
 
 macro_rules! serialize_individually {
     ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*) => {
@@ -57,7 +57,8 @@ pub fn save_game(ecs : &mut World) {
             OtherLevelPosition, DMSerializationHelper, LightSource, Initiative, MyTurn, Faction,
             WantsToApproach, WantsToFlee, MoveMode, Chasing, EquipmentChanged, Vendor, TownPortal,
             TeleportTo, ApplyMove, ApplyTeleport, MagicItem, ObfuscatedName, IdentifiedItem,
-            SpawnParticleBurst, SpawnParticleLine, CursedItem, ProvidesRemoveCurse, ProvidesIdentification
+            SpawnParticleBurst, SpawnParticleLine, CursedItem, ProvidesRemoveCurse, ProvidesIdentification,
+            AttributeBonus, StatusEffect, Duration
         );
     }
 
@@ -113,7 +114,8 @@ pub fn load_game(ecs: &mut World) {
             OtherLevelPosition, DMSerializationHelper, LightSource, Initiative, MyTurn, Faction,
             WantsToApproach, WantsToFlee, MoveMode, Chasing, EquipmentChanged, Vendor, TownPortal,
             TeleportTo, ApplyMove, ApplyTeleport, MagicItem, ObfuscatedName, IdentifiedItem,
-            SpawnParticleBurst, SpawnParticleLine, CursedItem, ProvidesRemoveCurse, ProvidesIdentification
+            SpawnParticleBurst, SpawnParticleLine, CursedItem, ProvidesRemoveCurse, ProvidesIdentification,
+            AttributeBonus, StatusEffect, Duration
         );
     }
 
@@ -137,8 +139,8 @@ pub fn load_game(ecs: &mut World) {
             deleteme2 = Some(e);
         }
         for (e,_p,pos) in (&entities, &player, &position).join() {
-            let mut ppos = ecs.write_resource::<Point>();
-            *ppos = Point::new(pos.x, pos.y);
+            let mut ppos = ecs.write_resource::<bracket_lib::prelude::Point>();
+            *ppos = bracket_lib::prelude::Point::new(pos.x, pos.y);
             let mut player_resource = ecs.write_resource::<Entity>();
             *player_resource = e;
         }

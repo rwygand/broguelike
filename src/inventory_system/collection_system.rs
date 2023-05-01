@@ -1,6 +1,6 @@
 use specs::prelude::*;
-use crate::{components::*, map::MasterDungeonMap, gamelog::GameLog};
-use super::obfuscate_name;
+use super::{WantsToPickupItem, Name, InBackpack, Position, gamelog::GameLog, EquipmentChanged,
+            MagicItem, ObfuscatedName, MasterDungeonMap };
 
 pub struct ItemCollectionSystem {}
 
@@ -31,7 +31,7 @@ impl<'a> System<'a> for ItemCollectionSystem {
                 gamelog.entries.push(
                     format!(
                         "You pick up the {}.",
-                        obfuscate_name(pickup.item, &names, &magic_items, &obfuscated_names, &dm)
+                        super::obfuscate_name(pickup.item, &names, &magic_items, &obfuscated_names, &dm)
                     )
                 );
             }

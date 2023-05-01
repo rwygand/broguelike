@@ -1,5 +1,5 @@
 use specs::prelude::*;
-use crate::components::*;
+use super::{Name, IdentifiedItem, Item, ObfuscatedName};
 
 pub struct ItemIdentificationSystem {}
 

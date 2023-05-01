@@ -1,7 +1,8 @@
 extern crate serde;
-use bracket_lib::prelude::{BError, BTerm, BTermBuilder, GameState, Point, RandomNumberGenerator, main_loop};
+use bracket_lib::prelude::{GameState, BTerm, Point};
 use specs::prelude::*;
 use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
+use bracket_lib::prelude::*;
 
 mod components;
 pub use components::*;
@@ -407,7 +408,7 @@ impl GameState for State {
                     pos.x = x;
                     pos.y = y;
                 }
-                let mut ppos = self.ecs.fetch_mut::<Point>();
+                let mut ppos = self.ecs.fetch_mut::<bracket_lib::prelude::Point>();
                 ppos.x = x;
                 ppos.y = y;
                 self.mapgen_next_state = Some(RunState::PreRun);
@@ -485,7 +486,7 @@ impl State {
     }
 }
 
-fn main() -> BError {
+fn main() -> bracket_lib::prelude::BError {
     let mut context = BTermBuilder::simple(80, 60)
         .unwrap()
         .with_title("Roguelike Tutorial")
@@ -565,6 +566,9 @@ fn main() -> BError {
     gs.ecs.register::<CursedItem>();
     gs.ecs.register::<ProvidesRemoveCurse>();
     gs.ecs.register::<ProvidesIdentification>();
+    gs.ecs.register::<AttributeBonus>();
+    gs.ecs.register::<Duration>();
+    gs.ecs.register::<StatusEffect>();
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     raws::load_raws();
@@ -572,7 +576,7 @@ fn main() -> BError {
     gs.ecs.insert(map::MasterDungeonMap::new());
     gs.ecs.insert(Map::new(1, 64, 64, "New Map"));
     gs.ecs.insert(Point::new(0, 0));
-    gs.ecs.insert(RandomNumberGenerator::new());
+    gs.ecs.insert(bracket_lib::prelude::RandomNumberGenerator::new());
     let player_entity = spawner::player(&mut gs.ecs, 0, 0);
     gs.ecs.insert(player_entity);
     gs.ecs.insert(RunState::MapGeneration{} );
@@ -582,5 +586,5 @@ fn main() -> BError {
 
     gs.generate_world_map(1, 0);
 
-    main_loop(context, gs)
+    bracket_lib::prelude::main_loop(context, gs)
 }

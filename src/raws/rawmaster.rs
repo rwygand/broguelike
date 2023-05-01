@@ -6,7 +6,6 @@ use crate::random_table::{RandomTable};
 use crate::{attr_bonus, npc_hp, mana_at_level};
 use regex::Regex;
 use specs::saveload::{MarkedBuilder, SimpleMarker};
-use bracket_lib::prelude::*;
 
 pub fn parse_dice_string(dice : &str) -> (i32, i32, i32) {
     lazy_static! {
@@ -71,21 +70,21 @@ impl RawMaster {
         let mut used_names : HashSet<String> = HashSet::new();
         for (i,item) in self.raws.items.iter().enumerate() {
             if used_names.contains(&item.name) {
-                console::log(format!("WARNING -  duplicate item name in raws [{}]", item.name));
+                bracket_lib::prelude::console::log(format!("WARNING -  duplicate item name in raws [{}]", item.name));
             }
             self.item_index.insert(item.name.clone(), i);
             used_names.insert(item.name.clone());
         }
         for (i,mob) in self.raws.mobs.iter().enumerate() {
             if used_names.contains(&mob.name) {
-                console::log(format!("WARNING -  duplicate mob name in raws [{}]", mob.name));
+                bracket_lib::prelude::console::log(format!("WARNING -  duplicate mob name in raws [{}]", mob.name));
             }
             self.mob_index.insert(mob.name.clone(), i);
             used_names.insert(mob.name.clone());
         }
         for (i,prop) in self.raws.props.iter().enumerate() {
             if used_names.contains(&prop.name) {
-                console::log(format!("WARNING -  duplicate prop name in raws [{}]", prop.name));
+                bracket_lib::prelude::console::log(format!("WARNING -  duplicate prop name in raws [{}]", prop.name));
             }
             self.prop_index.insert(prop.name.clone(), i);
             used_names.insert(prop.name.clone());
@@ -93,7 +92,7 @@ impl RawMaster {
 
         for spawn in self.raws.spawn_table.iter() {
             if !used_names.contains(&spawn.name) {
-                console::log(format!("WARNING - Spawn tables references unspecified entity {}", spawn.name));
+                bracket_lib::prelude::console::log(format!("WARNING - Spawn tables references unspecified entity {}", spawn.name));
             }
         }
 
@@ -225,9 +224,9 @@ fn spawn_position<'a>(pos : SpawnType, new_entity : EntityBuilder<'a>, tag : &st
 
 fn get_renderable_component(renderable : &super::item_structs::Renderable) -> crate::components::Renderable {
     crate::components::Renderable{
-        glyph: to_cp437(renderable.glyph.chars().next().unwrap()),
-        fg : RGB::from_hex(&renderable.fg).expect("Invalid RGB"),
-        bg : RGB::from_hex(&renderable.bg).expect("Invalid RGB"),
+        glyph: bracket_lib::prelude::to_cp437(renderable.glyph.chars().next().unwrap()),
+        fg : bracket_lib::prelude::RGB::from_hex(&renderable.fg).expect("Invalid RGB"),
+        bg : bracket_lib::prelude::RGB::from_hex(&renderable.bg).expect("Invalid RGB"),
         render_order : renderable.order
     }
 }
@@ -241,15 +240,15 @@ pub fn string_to_slot(slot : &str) -> EquipmentSlot {
         "Feet" => EquipmentSlot::Feet,
         "Hands" => EquipmentSlot::Hands,
         "Melee" => EquipmentSlot::Melee,
-        _ => { console::log(format!("Warning: unknown equipment slot type [{}])", slot)); EquipmentSlot::Melee }
+        _ => { bracket_lib::prelude::console::log(format!("Warning: unknown equipment slot type [{}])", slot)); EquipmentSlot::Melee }
     }
 }
 
 fn parse_particle_line(n : &str) -> SpawnParticleLine {
     let tokens : Vec<_> = n.split(';').collect();
     SpawnParticleLine{
-        glyph : to_cp437(tokens[0].chars().next().unwrap()),
-        color : RGB::from_hex(tokens[1]).expect("Bad RGB"),
+        glyph : bracket_lib::prelude::to_cp437(tokens[0].chars().next().unwrap()),
+        color : bracket_lib::prelude::RGB::from_hex(tokens[1]).expect("Bad RGB"),
         lifetime_ms : tokens[2].parse::<f32>().unwrap()
     }
 }
@@ -257,8 +256,8 @@ fn parse_particle_line(n : &str) -> SpawnParticleLine {
 fn parse_particle(n : &str) -> SpawnParticleBurst {
     let tokens : Vec<_> = n.split(';').collect();
     SpawnParticleBurst{
-        glyph : to_cp437(tokens[0].chars().next().unwrap()),
-        color : RGB::from_hex(tokens[1]).expect("Bad RGB"),
+        glyph : bracket_lib::prelude::to_cp437(tokens[0].chars().next().unwrap()),
+        color : bracket_lib::prelude::RGB::from_hex(tokens[1]).expect("Bad RGB"),
         lifetime_ms : tokens[2].parse::<f32>().unwrap()
     }
 }
@@ -272,7 +271,10 @@ macro_rules! apply_effects {
                 "ranged" => $eb = $eb.with(Ranged{ range: effect.1.parse::<i32>().unwrap() }),
                 "damage" => $eb = $eb.with(InflictsDamage{ damage : effect.1.parse::<i32>().unwrap() }),
                 "area_of_effect" => $eb = $eb.with(AreaOfEffect{ radius: effect.1.parse::<i32>().unwrap() }),
-                "confusion" => $eb = $eb.with(Confusion{ turns: effect.1.parse::<i32>().unwrap() }),
+                "confusion" => {
+                    $eb = $eb.with(Confusion{});
+                    $eb = $eb.with(Duration{ turns: effect.1.parse::<i32>().unwrap() });
+                }
                 "magic_mapping" => $eb = $eb.with(MagicMapper{}),
                 "town_portal" => $eb = $eb.with(TownPortal{}),
                 "food" => $eb = $eb.with(ProvidesFood{}),
@@ -281,7 +283,7 @@ macro_rules! apply_effects {
                 "particle" => $eb = $eb.with(parse_particle(&effect.1)),
                 "remove_curse" => $eb = $eb.with(ProvidesRemoveCurse{}),
                 "identify" => $eb = $eb.with(ProvidesIdentification{}),
-                _ => console::log(format!("Warning: consumable effect {} not implemented.", effect_name))
+                _ => bracket_lib::prelude::console::log(format!("Warning: consumable effect {} not implemented.", effect_name))
             }
         }
     };
@@ -315,7 +317,8 @@ pub fn spawn_named_item(raws: &RawMaster, ecs : &mut World, key : &str, pos : Sp
         });
 
         if let Some(consumable) = &item_template.consumable {
-            eb = eb.with(crate::components::Consumable{});
+            let max_charges = consumable.charges.unwrap_or(1);
+            eb = eb.with(crate::components::Consumable{ max_charges, charges : max_charges });
             apply_effects!(consumable.effects, eb);
         }
 
@@ -367,6 +370,15 @@ pub fn spawn_named_item(raws: &RawMaster, ecs : &mut World, key : &str, pos : Sp
             if let Some(cursed) = magic.cursed {
                 if cursed { eb = eb.with(CursedItem{}); }
             }
+        }
+
+        if let Some(ab) = &item_template.attributes {
+            eb = eb.with(AttributeBonus{
+                might : ab.might,
+                fitness : ab.fitness,
+                quickness : ab.quickness,
+                intelligence : ab.intelligence,
+            });
         }
 
         return Some(eb.build());
@@ -445,7 +457,7 @@ pub fn spawn_named_mob(raws: &RawMaster, ecs : &mut World, key : &str, pos : Spa
             total_weight : 0.0,
             total_initiative_penalty : 0.0,
             gold : if let Some(gold) = &mob_template.gold {
-                    let mut rng = RandomNumberGenerator::new();
+                    let mut rng = bracket_lib::prelude::RandomNumberGenerator::new();
                     let (n, d, b) = parse_dice_string(&gold);
                     (rng.roll_dice(n, d) + b) as f32
                 } else {
@@ -466,7 +478,7 @@ pub fn spawn_named_mob(raws: &RawMaster, ecs : &mut World, key : &str, pos : Spa
                     "Melee" => { skills.skills.insert(Skill::Melee, *sk.1); }
                     "Defense" => { skills.skills.insert(Skill::Defense, *sk.1); }
                     "Magic" => { skills.skills.insert(Skill::Magic, *sk.1); }
-                    _ => { console::log(format!("Unknown skill referenced: [{}]", sk.0)); }
+                    _ => { bracket_lib::prelude::console::log(format!("Unknown skill referenced: [{}]", sk.0)); }
                 }
             }
         }
@@ -500,7 +512,7 @@ pub fn spawn_named_mob(raws: &RawMaster, ecs : &mut World, key : &str, pos : Spa
         }
 
         if let Some(light) = &mob_template.light {
-            eb = eb.with(LightSource{ range: light.range, color : RGB::from_hex(&light.color).expect("Bad color") });
+            eb = eb.with(LightSource{ range: light.range, color : bracket_lib::prelude::RGB::from_hex(&light.color).expect("Bad color") });
         }
 
         if let Some(faction) = &mob_template.faction {
@@ -560,7 +572,7 @@ pub fn spawn_named_prop(raws: &RawMaster, ecs : &mut World, key : &str, pos : Sp
             apply_effects!(entry_trigger.effects, eb);
         }
         if let Some(light) = &prop_template.light {
-            eb = eb.with(LightSource{ range: light.range, color : RGB::from_hex(&light.color).expect("Bad color") });
+            eb = eb.with(LightSource{ range: light.range, color : bracket_lib::prelude::RGB::from_hex(&light.color).expect("Bad color") });
             eb = eb.with(Viewshed{ range: light.range, dirty: true, visible_tiles: Vec::new() });
         }
 
@@ -602,7 +614,7 @@ pub fn get_spawn_table_for_depth(raws: &RawMaster, depth: i32) -> RandomTable {
     rt
 }
 
-pub fn get_item_drop(raws: &RawMaster, rng : &mut RandomNumberGenerator, table: &str) -> Option<String> {
+pub fn get_item_drop(raws: &RawMaster, rng : &mut bracket_lib::prelude::RandomNumberGenerator, table: &str) -> Option<String> {
     if raws.loot_index.contains_key(table) {
         let mut rt = RandomTable::new();
         let available_options = &raws.raws.loot_tables[raws.loot_index[table]];

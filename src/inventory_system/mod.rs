@@ -1,29 +1,28 @@
-pub mod use_system;
-pub mod remove_system;
-pub mod identification_system;
-pub mod drop_system;
-pub mod collection_system;
-pub mod equip_use;
+use super::{WantsToPickupItem, Name, InBackpack, Position, gamelog, WantsToUseItem,
+            WantsToDropItem, Map, AreaOfEffect, Equippable, Equipped, WantsToRemoveItem, EquipmentChanged,
+            IdentifiedItem, Item, ObfuscatedName, MagicItem, MasterDungeonMap, CursedItem };
 
+mod collection_system;
+pub use collection_system::ItemCollectionSystem;
+mod use_system;
+pub use use_system::ItemUseSystem;
+mod drop_system;
+pub use drop_system::ItemDropSystem;
+mod remove_system;
+pub use remove_system::ItemRemoveSystem;
+mod identification_system;
+pub use identification_system::ItemIdentificationSystem;
+mod equip_use;
+pub use equip_use::ItemEquipOnUse;
 use specs::prelude::*;
 
-use crate::components::*;
-use crate::map::MasterDungeonMap;
-
-pub use use_system::ItemUseSystem;
-pub use remove_system::ItemRemoveSystem;
-pub use identification_system::ItemIdentificationSystem;
-pub use drop_system::ItemDropSystem;
-pub use collection_system::ItemCollectionSystem;
-pub use equip_use::ItemEquipOnUse;
-
-fn obfuscate_name(
-    item: Entity, 
-    names: &ReadStorage::<Name>, 
+pub fn obfuscate_name(
+    item: Entity,
+    names: &ReadStorage::<Name>,
     magic_items : &ReadStorage::<MagicItem>,
     obfuscated_names : &ReadStorage::<ObfuscatedName>,
     dm : &MasterDungeonMap,
-) -> String 
+) -> String
 {
     if let Some(name) = names.get(item) {
         if magic_items.get(item).is_some() {

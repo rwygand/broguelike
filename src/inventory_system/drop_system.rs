@@ -1,6 +1,6 @@
 use specs::prelude::*;
-use super::obfuscate_name;
-use crate::{components::*, map::MasterDungeonMap, gamelog::GameLog};
+use super::{Name, InBackpack, Position, gamelog::GameLog, WantsToDropItem, EquipmentChanged,
+            MagicItem, ObfuscatedName, MasterDungeonMap};
 
 pub struct ItemDropSystem {}
 
@@ -37,8 +37,8 @@ impl<'a> System<'a> for ItemDropSystem {
             if entity == *player_entity {
                 gamelog.entries.push(
                     format!(
-                        "You drop the {}.",
-                        obfuscate_name(to_drop.item, &names, &magic_items, &obfuscated_names, &dm)
+                        "You pick up the {}.",
+                        super::obfuscate_name(to_drop.item, &names, &magic_items, &obfuscated_names, &dm)
                     )
                 );
             }
