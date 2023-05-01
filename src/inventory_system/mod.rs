@@ -15,6 +15,7 @@ pub use identification_system::ItemIdentificationSystem;
 mod equip_use;
 pub use equip_use::ItemEquipOnUse;
 use specs::prelude::*;
+pub use use_system::SpellUseSystem;
 
 pub fn obfuscate_name(
     item: Entity,

@@ -58,7 +58,8 @@ pub fn save_game(ecs : &mut World) {
             WantsToApproach, WantsToFlee, MoveMode, Chasing, EquipmentChanged, Vendor, TownPortal,
             TeleportTo, ApplyMove, ApplyTeleport, MagicItem, ObfuscatedName, IdentifiedItem,
             SpawnParticleBurst, SpawnParticleLine, CursedItem, ProvidesRemoveCurse, ProvidesIdentification,
-            AttributeBonus, StatusEffect, Duration
+            AttributeBonus, StatusEffect, Duration, KnownSpells, SpellTemplate, WantsToCastSpell,
+            ProvidesMana, TeachesSpell, Slow, DamageOverTime, SpecialAbilities
         );
     }
 
@@ -115,7 +116,8 @@ pub fn load_game(ecs: &mut World) {
             WantsToApproach, WantsToFlee, MoveMode, Chasing, EquipmentChanged, Vendor, TownPortal,
             TeleportTo, ApplyMove, ApplyTeleport, MagicItem, ObfuscatedName, IdentifiedItem,
             SpawnParticleBurst, SpawnParticleLine, CursedItem, ProvidesRemoveCurse, ProvidesIdentification,
-            AttributeBonus, StatusEffect, Duration
+            AttributeBonus, StatusEffect, Duration, KnownSpells, SpellTemplate, WantsToCastSpell,
+            ProvidesMana, TeachesSpell, Slow, DamageOverTime, SpecialAbilities
         );
     }
 

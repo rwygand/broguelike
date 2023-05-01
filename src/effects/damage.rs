@@ -6,7 +6,7 @@ use crate::gamesystem::{player_hp_at_level, mana_at_level};
 use crate::gamelog::GameLog;
 use bracket_lib::prelude::*;
 use specs::saveload::{MarkedBuilder, SimpleMarker};
-use crate::{Duration, EquipmentChanged, Name, SerializeMe, StatusEffect};
+use crate::{DamageOverTime, Duration, EquipmentChanged, Name, SerializeMe, Slow, StatusEffect};
 
 pub fn inflict_damage(ecs: &mut World, damage: &EffectSpawner, target: Entity) {
     let mut pools = ecs.write_storage::<Pools>();
@@ -116,6 +116,24 @@ pub fn heal_damage(ecs: &mut World, heal: &EffectSpawner, target: Entity) {
     }
 }
 
+pub fn restore_mana(ecs: &mut World, mana: &EffectSpawner, target: Entity) {
+    let mut pools = ecs.write_storage::<Pools>();
+    if let Some(pool) = pools.get_mut(target) {
+        if let EffectType::Mana{amount} = mana.effect_type {
+            pool.mana.current = i32::min(pool.mana.max, pool.mana.current + amount);
+            add_effect(None,
+                       EffectType::Particle{
+                           glyph: to_cp437('‼'),
+                           fg : RGB::named(BLUE),
+                           bg : RGB::named(BLACK),
+                           lifespan: 200.0
+                       },
+                       Targets::Single{target}
+            );
+        }
+    }
+}
+
 pub fn add_confusion(ecs: &mut World, effect: &EffectSpawner, target: Entity) {
     if let EffectType::Confusion{turns} = &effect.effect_type {
         ecs.create_entity()
@@ -141,3 +159,32 @@ pub fn attribute_effect(ecs: &mut World, effect: &EffectSpawner, target: Entity)
     }
 }
 
+pub fn slow(ecs: &mut World, effect: &EffectSpawner, target: Entity) {
+    if let EffectType::Slow{initiative_penalty} = &effect.effect_type {
+        ecs.create_entity()
+            .with(StatusEffect{ target })
+            .with(Slow{ initiative_penalty : *initiative_penalty })
+            .with(Duration{ turns : 5})
+            .with(
+                if *initiative_penalty > 0.0 {
+                    Name{ name : "Slowed".to_string() }
+                } else {
+                    Name{ name : "Hasted".to_string() }
+                }
+            )
+            .marked::<SimpleMarker<SerializeMe>>()
+            .build();
+    }
+}
+
+pub fn damage_over_time(ecs: &mut World, effect: &EffectSpawner, target: Entity) {
+    if let EffectType::DamageOverTime{damage} = &effect.effect_type {
+        ecs.create_entity()
+            .with(StatusEffect{ target })
+            .with(DamageOverTime{ damage : *damage })
+            .with(Duration{ turns : 5})
+            .with(Name{ name : "Damage Over Time".to_string() })
+            .marked::<SimpleMarker<SerializeMe>>()
+            .build();
+    }
+}

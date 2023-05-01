@@ -6,6 +6,7 @@ use serde::{Serialize, Deserialize};
 use specs::saveload::{Marker, ConvertSaveload};
 use specs::error::NoError;
 use std::collections::HashMap;
+use bracket_lib::geometry::Point;
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Position {
@@ -245,6 +246,16 @@ pub struct ProvidesHealing {
 }
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct ProvidesMana {
+    pub mana_amount : i32
+}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct TeachesSpell {
+    pub spell : String
+}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct BlocksVisibility {}
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
@@ -302,7 +313,9 @@ pub struct MeleeWeapon {
     pub damage_n_dice : i32,
     pub damage_die_type : i32,
     pub damage_bonus : i32,
-    pub hit_bonus : i32
+    pub hit_bonus : i32,
+    pub proc_chance : Option<f32>,
+    pub proc_target : Option<String>,
 }
 
 #[derive(Component, Serialize, Deserialize, Clone)]
@@ -324,6 +337,19 @@ pub struct NaturalAttack {
 pub struct NaturalAttackDefense {
     pub armor_class : Option<i32>,
     pub attacks : Vec<NaturalAttack>
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SpecialAbility {
+    pub spell : String,
+    pub chance : f32,
+    pub range : f32,
+    pub min_range : f32
+}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct SpecialAbilities {
+    pub abilities : Vec<SpecialAbility>
 }
 
 #[derive(Component, Serialize, Deserialize, Clone)]
@@ -386,6 +412,38 @@ pub struct SingleActivation {}
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct Quips {
     pub available : Vec<String>
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct KnownSpell {
+    pub display_name : String,
+    pub mana_cost : i32
+}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct KnownSpells {
+    pub spells : Vec<KnownSpell>
+}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct SpellTemplate {
+    pub mana_cost : i32
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct WantsToCastSpell {
+    pub spell : Entity,
+    pub target : Option<Point>
+}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct Slow {
+    pub initiative_penalty : f32
+}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct DamageOverTime {
+    pub damage : i32
 }
 
 // Serialization helper code. We need to implement ConvertSaveLoad for each type that contains an

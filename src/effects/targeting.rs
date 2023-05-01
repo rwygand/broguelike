@@ -3,6 +3,7 @@ use crate::components::{Position, InBackpack, Equipped};
 use crate::map::Map;
 use bracket_lib::prelude::*;
 
+
 pub fn entity_position(ecs: &World, target: Entity) -> Option<i32> {
     if let Some(pos) = ecs.read_storage::<Position>().get(target) {
         let map = ecs.fetch::<Map>();
@@ -21,7 +22,7 @@ pub fn aoe_tiles(map: &Map, target: Point, radius: i32) -> Vec<i32> {
     result
 }
 
-pub fn find_item_position(ecs: &World, target: Entity) -> Option<i32> {
+pub fn find_item_position(ecs: &World, target: Entity, creator: Option<Entity>) -> Option<i32> {
     let positions = ecs.read_storage::<Position>();
     let map = ecs.fetch::<Map>();
 
@@ -40,6 +41,13 @@ pub fn find_item_position(ecs: &World, target: Entity) -> Option<i32> {
     // Maybe it is equipped?
     if let Some(equipped) = ecs.read_storage::<Equipped>().get(target) {
         if let Some(pos) = positions.get(equipped.owner) {
+            return Some(map.xy_idx(pos.x, pos.y) as i32);
+        }
+    }
+
+    // Maybe the creator has a position?
+    if let Some(creator) = creator {
+        if let Some(pos) = positions.get(creator) {
             return Some(map.xy_idx(pos.x, pos.y) as i32);
         }
     }

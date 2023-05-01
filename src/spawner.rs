@@ -6,10 +6,11 @@ use super::{Pools, Pool, Player, Renderable, Name, Position, Viewshed, Rect,
     OtherLevelPosition, MasterDungeonMap, EntryTrigger, TeleportTo, SingleActivation };
 use specs::saveload::{MarkedBuilder, SimpleMarker};
 use std::collections::HashMap;
-use crate::{attr_bonus, player_hp_at_level, mana_at_level, StatusEffect, Duration, AttributeBonus};
+use crate::{attr_bonus, player_hp_at_level, mana_at_level, StatusEffect, Duration, AttributeBonus, KnownSpells};
 
 /// Spawns the player and returns his/her entity object.
 pub fn player(ecs : &mut World, player_x : i32, player_y : i32) -> Entity {
+    spawn_all_spells(ecs); // this is a bit of a hack
     let mut skills = Skills{ skills: HashMap::new() };
     skills.skills.insert(Skill::Melee, 1);
     skills.skills.insert(Skill::Defense, 1);
@@ -55,6 +56,7 @@ pub fn player(ecs : &mut World, player_x : i32, player_y : i32) -> Entity {
         .with(LightSource{ color: RGB::from_f32(1.0, 1.0, 0.5), range: 8 })
         .with(Initiative{current: 0})
         .with(Faction{name : "Player".to_string() })
+        .with(KnownSpells{ spells : Vec::new() })
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 

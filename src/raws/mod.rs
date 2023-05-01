@@ -13,6 +13,9 @@ pub use faction_structs::*;
 use bracket_lib::prelude::*;
 
 mod rawmaster;
+mod spells_structs;
+pub use spells_structs::Spell;
+
 pub use rawmaster::*;
 use serde::{Deserialize};
 use std::sync::Mutex;
@@ -30,7 +33,8 @@ pub struct Raws {
     pub props : Vec<Prop>,
     pub spawn_table : Vec<SpawnTableEntry>,
     pub loot_tables : Vec<LootTable>,
-    pub faction_table : Vec<FactionInfo>
+    pub faction_table : Vec<FactionInfo>,
+    pub spells : Vec<Spell>
 }
 
 pub fn load_raws() {

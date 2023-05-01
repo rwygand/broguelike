@@ -23,18 +23,21 @@ pub enum EffectType {
     Particle { glyph: FontCharType, fg : RGB, bg: RGB, lifespan: f32 },
     EntityDeath,
     ItemUse { item: Entity },
+    SpellUse { spell: Entity },
     WellFed,
     Healing { amount : i32 },
+    Mana { amount : i32 },
     Confusion { turns : i32 },
     TriggerFire { trigger: Entity },
     TeleportTo { x:i32, y:i32, depth: i32, player_only : bool },
-    AttributeEffect { bonus : AttributeBonus, name : String, duration : i32 }
+    AttributeEffect { bonus : AttributeBonus, name : String, duration : i32 },
+    Slow { initiative_penalty : f32 },
+    DamageOverTime { damage : i32 }
 }
 
 #[derive(Clone, Debug)]
 pub enum Targets {
     Single { target : Entity },
-    #[allow(dead_code)]
     TargetList { targets: Vec<Entity> },
     Tile { tile_idx : i32 },
     Tiles { tiles: Vec<i32> }
@@ -72,6 +75,9 @@ pub fn run_effects_queue(ecs : &mut World) {
 fn target_applicator(ecs : &mut World, effect : &EffectSpawner) {
     if let EffectType::ItemUse{item} = effect.effect_type {
         triggers::item_trigger(effect.creator, item, &effect.targets, ecs);
+    } else if let EffectType::SpellUse{spell} = effect.effect_type {
+        log("casting a spell");
+        triggers::spell_trigger(effect.creator, spell, &effect.targets, ecs);
     } else if let EffectType::TriggerFire{trigger} = effect.effect_type {
         triggers::trigger(effect.creator, trigger, &effect.targets, ecs);
     } else {
@@ -89,9 +95,12 @@ fn tile_effect_hits_entities(effect: &EffectType) -> bool {
         EffectType::Damage{..} => true,
         EffectType::WellFed => true,
         EffectType::Healing{..} => true,
+        EffectType::Mana{..} => true,
         EffectType::Confusion{..} => true,
         EffectType::TeleportTo{..} => true,
-        EffectType::AttributeEffect {..} => true,
+        EffectType::AttributeEffect{..} => true,
+        EffectType::Slow{..} => true,
+        EffectType::DamageOverTime{..} => true,
         _ => false
     }
 }
@@ -117,10 +126,12 @@ fn affect_entity(ecs: &mut World, effect: &EffectSpawner, target: Entity) {
         EffectType::Particle{..} => if let Some(pos) = entity_position(ecs, target) { particles::particle_to_tile(ecs, pos, &effect) },
         EffectType::WellFed => hunger::well_fed(ecs, effect, target),
         EffectType::Healing{..} => damage::heal_damage(ecs, effect, target),
+        EffectType::Mana{..} => damage::restore_mana(ecs, effect, target),
         EffectType::Confusion{..} => damage::add_confusion(ecs, effect, target),
         EffectType::TeleportTo{..} => movement::apply_teleport(ecs, effect, target),
         EffectType::AttributeEffect{..} => damage::attribute_effect(ecs, effect, target),
+        EffectType::Slow{..} => damage::slow(ecs, effect, target),
+        EffectType::DamageOverTime{..} => damage::damage_over_time(ecs, effect, target),
         _ => {}
     }
 }
-
