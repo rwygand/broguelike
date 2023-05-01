@@ -8,6 +8,7 @@ use regex::Regex;
 use specs::saveload::{MarkedBuilder, SimpleMarker};
 use bracket_lib::prelude::*;
 
+// TODO replace with bracket_lib::prelude::parse_dice_string
 pub fn parse_dice_string(dice : &str) -> (i32, i32, i32) {
     lazy_static! {
         static ref DICE_RE : Regex = Regex::new(r"(\d+)d(\d+)([\+\-]\d+)?").unwrap();

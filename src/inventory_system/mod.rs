@@ -1,19 +1,21 @@
-pub mod item_use_system;
-pub mod item_remove_system;
-pub mod item_identification_system;
-pub mod item_drop_system;
-pub mod item_collection_system;
+pub mod use_system;
+pub mod remove_system;
+pub mod identification_system;
+pub mod drop_system;
+pub mod collection_system;
+pub mod equip_use;
 
 use specs::prelude::*;
 
 use crate::components::*;
 use crate::map::MasterDungeonMap;
 
-pub use item_use_system::ItemUseSystem;
-pub use item_remove_system::ItemRemoveSystem;
-pub use item_identification_system::ItemIdentificationSystem;
-pub use item_drop_system::ItemDropSystem;
-pub use item_collection_system::ItemCollectionSystem;
+pub use use_system::ItemUseSystem;
+pub use remove_system::ItemRemoveSystem;
+pub use identification_system::ItemIdentificationSystem;
+pub use drop_system::ItemDropSystem;
+pub use collection_system::ItemCollectionSystem;
+pub use equip_use::ItemEquipOnUse;
 
 fn obfuscate_name(
     item: Entity, 
