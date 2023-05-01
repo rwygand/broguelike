@@ -3,9 +3,16 @@ use specs::prelude::*;
 use super::{Pools, gamelog::GameLog, Map, Name, Position, State, InBackpack,
     Viewshed, RunState, Equipped, HungerClock, HungerState, rex_assets::RexAssets,
     Hidden, camera, Attributes, Attribute, Consumable, VendorMode, Item, Vendor,
-    MagicItem, MagicItemClass, ObfuscatedName };
+    MagicItem, MagicItemClass, ObfuscatedName, CursedItem, MasterDungeonMap };
 
 pub fn get_item_color(ecs : &World, item : Entity) -> RGB {
+    let dm = ecs.fetch::<crate::map::MasterDungeonMap>();
+    if let Some(name) = ecs.read_storage::<Name>().get(item) {
+        if ecs.read_storage::<CursedItem>().get(item).is_some() && dm.identified_items.contains(&name.name) {
+            return RGB::from_f32(1.0, 0.0, 0.0);
+        }
+    }
+
     if let Some(magic) = ecs.read_storage::<MagicItem>().get(item) {
         match magic.class {
             MagicItemClass::Common => return RGB::from_f32(0.5, 1.0, 0.5),
@@ -45,6 +52,8 @@ pub fn draw_hollow_box(
     fg: RGB,
     bg: RGB,
 ) {
+    use to_cp437;
+
     console.set(sx, sy, fg, bg, to_cp437('┌'));
     console.set(sx + width, sy, fg, bg, to_cp437('┐'));
     console.set(sx, sy + height, fg, bg, to_cp437('└'));
@@ -73,6 +82,7 @@ fn draw_attribute(name : &str, attribute : &Attribute, y : i32, ctx: &mut BTerm)
 }
 
 pub fn draw_ui(ecs: &World, ctx : &mut BTerm) {
+    use to_cp437;
     let box_gray : RGB = RGB::from_hex("#999999").expect("Oops");
     let black = RGB::named(BLACK);
     let white = RGB::named(WHITE);
@@ -218,6 +228,8 @@ impl Tooltip {
 }
 
 fn draw_tooltips(ecs: &World, ctx : &mut BTerm) {
+    use to_cp437;
+
     let (min_x, _max_x, min_y, _max_y) = camera::get_screen_bounds(ecs, ctx);
     let map = ecs.fetch::<Map>();
     let positions = ecs.read_storage::<Position>();
@@ -429,6 +441,144 @@ pub fn remove_item_menu(gs : &mut State, ctx : &mut BTerm) -> (ItemMenuResult, O
         equippable.push(entity);
         y += 1;
         j += 1;
+    }
+
+    match ctx.key {
+        None => (ItemMenuResult::NoResponse, None),
+        Some(key) => {
+            match key {
+                VirtualKeyCode::Escape => { (ItemMenuResult::Cancel, None) }
+                _ => {
+                    let selection = letter_to_option(key);
+                    if selection > -1 && selection < count as i32 {
+                        return (ItemMenuResult::Selected, Some(equippable[selection as usize]));
+                    }
+                    (ItemMenuResult::NoResponse, None)
+                }
+            }
+        }
+    }
+}
+
+pub fn remove_curse_menu(gs : &mut State, ctx : &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+    let player_entity = gs.ecs.fetch::<Entity>();
+    let equipped = gs.ecs.read_storage::<Equipped>();
+    let backpack = gs.ecs.read_storage::<InBackpack>();
+    let entities = gs.ecs.entities();
+    let items = gs.ecs.read_storage::<Item>();
+    let cursed = gs.ecs.read_storage::<CursedItem>();
+    let names = gs.ecs.read_storage::<Name>();
+    let dm = gs.ecs.fetch::<MasterDungeonMap>();
+
+    let build_cursed_iterator = || {
+        (&entities, &items, &cursed).join().filter(|(item_entity,_item,_cursed)| {
+            let mut keep = false;
+            if let Some(bp) = backpack.get(*item_entity) {
+                if bp.owner == *player_entity {
+                    if let Some(name) = names.get(*item_entity) {
+                        if dm.identified_items.contains(&name.name) {
+                            keep = true;
+                        }
+                    }
+                }
+            }
+            // It's equipped, so we know it's cursed
+            if let Some(equip) = equipped.get(*item_entity) {
+                if equip.owner == *player_entity {
+                    keep = true;
+                }
+            }
+            keep
+        })
+    };
+
+    let count = build_cursed_iterator().count();
+
+    let mut y = (25 - (count / 2)) as i32;
+    ctx.draw_box(15, y-2, 31, (count+3) as i32, RGB::named(WHITE), RGB::named(BLACK));
+    ctx.print_color(18, y-2, RGB::named(YELLOW), RGB::named(BLACK), "Remove Curse From Which Item?");
+    ctx.print_color(18, y+ count as i32+1, RGB::named(YELLOW), RGB::named(BLACK), "ESCAPE to cancel");
+
+    let mut equippable : Vec<Entity> = Vec::new();
+    for (j, (entity, _item, _cursed)) in build_cursed_iterator().enumerate() {
+        ctx.set(17, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437('('));
+        ctx.set(18, y, RGB::named(YELLOW), RGB::named(BLACK), 97+j as FontCharType);
+        ctx.set(19, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437(')'));
+
+        ctx.print_color(21, y, get_item_color(&gs.ecs, entity), RGB::from_f32(0.0, 0.0, 0.0), &get_item_display_name(&gs.ecs, entity));
+        equippable.push(entity);
+        y += 1;
+    }
+
+    match ctx.key {
+        None => (ItemMenuResult::NoResponse, None),
+        Some(key) => {
+            match key {
+                VirtualKeyCode::Escape => { (ItemMenuResult::Cancel, None) }
+                _ => {
+                    let selection = letter_to_option(key);
+                    if selection > -1 && selection < count as i32 {
+                        return (ItemMenuResult::Selected, Some(equippable[selection as usize]));
+                    }
+                    (ItemMenuResult::NoResponse, None)
+                }
+            }
+        }
+    }
+}
+
+pub fn identify_menu(gs : &mut State, ctx : &mut BTerm) -> (ItemMenuResult, Option<Entity>) {
+    let player_entity = gs.ecs.fetch::<Entity>();
+    let equipped = gs.ecs.read_storage::<Equipped>();
+    let backpack = gs.ecs.read_storage::<InBackpack>();
+    let entities = gs.ecs.entities();
+    let items = gs.ecs.read_storage::<Item>();
+    let names = gs.ecs.read_storage::<Name>();
+    let dm = gs.ecs.fetch::<MasterDungeonMap>();
+    let obfuscated = gs.ecs.read_storage::<ObfuscatedName>();
+
+    let build_cursed_iterator = || {
+        (&entities, &items).join().filter(|(item_entity,_item)| {
+            let mut keep = false;
+            if let Some(bp) = backpack.get(*item_entity) {
+                if bp.owner == *player_entity {
+                    if let Some(name) = names.get(*item_entity) {
+                        if obfuscated.get(*item_entity).is_some() && !dm.identified_items.contains(&name.name) {
+                            keep = true;
+                        }
+                    }
+                }
+            }
+            // It's equipped, so we know it's cursed
+            if let Some(equip) = equipped.get(*item_entity) {
+                if equip.owner == *player_entity {
+                    if let Some(name) = names.get(*item_entity) {
+                        if obfuscated.get(*item_entity).is_some() && !dm.identified_items.contains(&name.name) {
+                            keep = true;
+                        }
+                    }
+                }
+            }
+            keep
+        })
+    };
+
+    let count = build_cursed_iterator().count();
+
+    let mut y = (25 - (count / 2)) as i32;
+    ctx.draw_box(15, y-2, 31, (count+3) as i32, RGB::named(WHITE), RGB::named(BLACK));
+    ctx.print_color(18, y-2, RGB::named(YELLOW), RGB::named(BLACK), "Identify Which Item?");
+    ctx.print_color(18, y+ count as i32+1, RGB::named(YELLOW), RGB::named(BLACK), "ESCAPE to cancel");
+
+    let mut equippable : Vec<Entity> = Vec::new();
+    for (j, (entity, _item)) in build_cursed_iterator().enumerate() {
+        ctx.set(17, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437('('));
+        ctx.set(18, y, RGB::named(YELLOW), RGB::named(BLACK), 97+j as FontCharType);
+        ctx.set(19, y, RGB::named(WHITE), RGB::named(BLACK), to_cp437(')'));
+
+        ctx.print_color(21, y, get_item_color(&gs.ecs, entity), RGB::from_f32(0.0, 0.0, 0.0), &get_item_display_name(&gs.ecs, entity));
+        equippable.push(entity);
+        y += 1;
     }
 
     match ctx.key {

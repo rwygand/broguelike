@@ -2,7 +2,6 @@ use super::*;
 use crate::components::*;
 use crate::gamelog::GameLog;
 use crate::RunState;
-use bracket_lib::prelude::*;
 
 pub fn item_trigger(creator : Option<Entity>, item: Entity, targets : &Targets, ecs: &mut World) {
     // Use the item via the generic system
@@ -34,13 +33,13 @@ fn event_trigger(creator : Option<Entity>, entity: Entity, targets : &Targets, e
     // Simple particle spawn
     if let Some(part) = ecs.read_storage::<SpawnParticleBurst>().get(entity) {
         add_effect(
-            creator,
+            creator, 
             EffectType::Particle{
                 glyph : part.glyph,
                 fg : part.color,
                 bg : RGB::named(BLACK),
                 lifespan : part.lifetime_ms
-            },
+            }, 
             targets.clone()
         );
     }
@@ -83,6 +82,20 @@ fn event_trigger(creator : Option<Entity>, entity: Entity, targets : &Targets, e
         did_something = true;
     }
 
+    // Remove Curse
+    if ecs.read_storage::<ProvidesRemoveCurse>().get(entity).is_some() {
+        let mut runstate = ecs.fetch_mut::<RunState>();
+        *runstate = RunState::ShowRemoveCurse;
+        did_something = true;
+    }
+
+    // Identify Item
+    if ecs.read_storage::<ProvidesIdentification>().get(entity).is_some() {
+        let mut runstate = ecs.fetch_mut::<RunState>();
+        *runstate = RunState::ShowIdentify;
+        did_something = true;
+    }
+
     // Town Portal
     if ecs.read_storage::<TownPortal>().get(entity).is_some() {
         let map = ecs.fetch::<Map>();
@@ -117,13 +130,13 @@ fn event_trigger(creator : Option<Entity>, entity: Entity, targets : &Targets, e
     // Teleport
     if let Some(teleport) = ecs.read_storage::<TeleportTo>().get(entity) {
         add_effect(
-            creator,
-            EffectType::TeleportTo{
-                x : teleport.x,
-                y : teleport.y,
-                depth: teleport.depth,
-                player_only: teleport.player_only
-            },
+            creator, 
+            EffectType::TeleportTo{ 
+                x : teleport.x, 
+                y : teleport.y, 
+                depth: teleport.depth, 
+                player_only: teleport.player_only 
+            }, 
             targets.clone()
         );
         did_something = true;
@@ -139,13 +152,13 @@ fn spawn_line_particles(ecs:&World, start: i32, end: i32, part: &SpawnParticleLi
     let line = line2d(LineAlg::Bresenham, start_pt, end_pt);
     for pt in line.iter() {
         add_effect(
-            None,
+            None, 
             EffectType::Particle{
                 glyph : part.glyph,
                 fg : part.color,
                 bg : RGB::named(BLACK),
                 lifespan : part.lifetime_ms
-            },
+            }, 
             Targets::Tile{ tile_idx : map.xy_idx(pt.x, pt.y) as i32}
         );
     }

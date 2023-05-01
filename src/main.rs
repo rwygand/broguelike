@@ -1,5 +1,5 @@
 extern crate serde;
-use bracket_lib::prelude::{BError, BTerm, BTermBuilder, GameState, main_loop, Point, RandomNumberGenerator};
+use bracket_lib::prelude::{BError, BTerm, BTermBuilder, GameState, Point, RandomNumberGenerator, main_loop};
 use specs::prelude::*;
 use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
 
@@ -22,6 +22,7 @@ mod gui;
 mod gamelog;
 mod spawner;
 mod inventory_system;
+use inventory_system::{ ItemCollectionSystem, ItemUseSystem, ItemDropSystem, ItemRemoveSystem };
 pub mod saveload_system;
 pub mod random_table;
 pub mod particle_system;
@@ -36,11 +37,10 @@ pub use gamesystem::*;
 mod lighting_system;
 mod ai;
 mod movement_system;
-
+pub mod effects;
 #[macro_use]
 extern crate lazy_static;
 pub mod spatial;
-mod effects;
 
 const SHOW_MAPGEN_VISUALIZER : bool = false;
 
@@ -66,7 +66,9 @@ pub enum RunState {
     MapGeneration,
     ShowCheatMenu,
     ShowVendor { vendor: Entity, mode : VendorMode },
-    TeleportingToOtherLevel { x: i32, y: i32, depth: i32 }
+    TeleportingToOtherLevel { x: i32, y: i32, depth: i32 },
+    ShowRemoveCurse,
+    ShowIdentify
 }
 
 pub struct State {
@@ -109,23 +111,21 @@ impl State {
         triggers.run_now(&self.ecs);
         let mut melee = MeleeCombatSystem{};
         melee.run_now(&self.ecs);
+        let mut pickup = ItemCollectionSystem{};
+        pickup.run_now(&self.ecs);
         let mut itemequip = inventory_system::ItemEquipOnUse{};
         itemequip.run_now(&self.ecs);
-        let mut pickup = inventory_system::ItemCollectionSystem{};
-        pickup.run_now(&self.ecs);
-        let mut itemuse = inventory_system::ItemUseSystem{};
+        let mut itemuse = ItemUseSystem{};
         itemuse.run_now(&self.ecs);
         let mut item_id = inventory_system::ItemIdentificationSystem{};
         item_id.run_now(&self.ecs);
-        let mut drop_items = inventory_system::ItemDropSystem{};
+        let mut drop_items = ItemDropSystem{};
         drop_items.run_now(&self.ecs);
-        let mut item_remove = inventory_system::ItemRemoveSystem{};
+        let mut item_remove = ItemRemoveSystem{};
         item_remove.run_now(&self.ecs);
         let mut hunger = hunger_system::HungerSystem{};
         hunger.run_now(&self.ecs);
-
         effects::run_effects_queue(&mut self.ecs);
-
         let mut particles = particle_system::ParticleSpawnSystem{};
         particles.run_now(&self.ecs);
         let mut lighting = lighting_system::LightingSystem{};
@@ -136,6 +136,7 @@ impl State {
 }
 
 impl GameState for State {
+    #[allow(clippy::cognitive_complexity)]
     fn tick(&mut self, ctx : &mut BTerm) {
         let mut newrunstate;
         {
@@ -191,6 +192,8 @@ impl GameState for State {
                         RunState::MagicMapReveal{ .. } => newrunstate = RunState::MagicMapReveal{ row: 0 },
                         RunState::TownPortal => newrunstate = RunState::TownPortal,
                         RunState::TeleportingToOtherLevel{ x, y, depth } => newrunstate = RunState::TeleportingToOtherLevel{ x, y, depth },
+                        RunState::ShowRemoveCurse => newrunstate = RunState::ShowRemoveCurse,
+                        RunState::ShowIdentify => newrunstate = RunState::ShowIdentify,
                         _ => newrunstate = RunState::Ticking
                     }
                 }
@@ -269,6 +272,33 @@ impl GameState for State {
                         let item_entity = result.1.unwrap();
                         let mut intent = self.ecs.write_storage::<WantsToRemoveItem>();
                         intent.insert(*self.ecs.fetch::<Entity>(), WantsToRemoveItem{ item: item_entity }).expect("Unable to insert intent");
+                        newrunstate = RunState::Ticking;
+                    }
+                }
+            }
+            RunState::ShowRemoveCurse => {
+                let result = gui::remove_curse_menu(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+                        self.ecs.write_storage::<CursedItem>().remove(item_entity);
+                        newrunstate = RunState::Ticking;
+                    }
+                }
+            }
+            RunState::ShowIdentify => {
+                let result = gui::identify_menu(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+                        if let Some(name) = self.ecs.read_storage::<Name>().get(item_entity) {
+                            let mut dm = self.ecs.fetch_mut::<MasterDungeonMap>();
+                            dm.identified_items.insert(name.name.clone());
+                        }
                         newrunstate = RunState::Ticking;
                     }
                 }
@@ -458,9 +488,9 @@ impl State {
 fn main() -> BError {
     let mut context = BTermBuilder::simple(80, 60)
         .unwrap()
-        .with_title("Broguelike")
-        .with_tile_dimensions(16, 16)
+        .with_title("Roguelike Tutorial")
         .with_fps_cap(30.)
+        .with_tile_dimensions(16u32, 16u32)
         .build()?;
     context.with_post_scanlines(true);
     let mut gs = State {
@@ -532,7 +562,9 @@ fn main() -> BError {
     gs.ecs.register::<IdentifiedItem>();
     gs.ecs.register::<SpawnParticleBurst>();
     gs.ecs.register::<SpawnParticleLine>();
-
+    gs.ecs.register::<CursedItem>();
+    gs.ecs.register::<ProvidesRemoveCurse>();
+    gs.ecs.register::<ProvidesIdentification>();
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     raws::load_raws();

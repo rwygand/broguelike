@@ -1,8 +1,6 @@
-#![allow(deprecated)]
-
 use specs::prelude::*;
 use specs_derive::*;
-use bracket_lib::prelude::{Point, FontCharType, RGB};
+use bracket_lib::prelude::{RGB, Point, FontCharType};
 use serde::{Serialize, Deserialize};
 use specs::saveload::{Marker, ConvertSaveload};
 use specs::error::NoError;
@@ -190,7 +188,16 @@ pub struct MagicItem {
 }
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct CursedItem {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct Consumable {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct ProvidesRemoveCurse {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct ProvidesIdentification {}
 
 #[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct Ranged {
