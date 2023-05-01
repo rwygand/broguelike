@@ -58,7 +58,7 @@ impl<'a> System<'a> for VisibleAI {
     }
 }
 
-fn evaluate(idx : usize, map : &Map, factions : &ReadStorage<Faction>, my_faction : &str, reactions : &mut Vec<(usize, Reaction, Entity)>) {
+fn evaluate(idx : usize, _map : &Map, factions : &ReadStorage<Faction>, my_faction : &str, reactions : &mut Vec<(usize, Reaction, Entity)>) {
     crate::spatial::for_each_tile_content(idx, |other_entity| {
         if let Some(faction) = factions.get(other_entity) {
             reactions.push((

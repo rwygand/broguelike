@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 use specs::prelude::*;
 use super::{Map, Position, BlocksTile, ApplyMove, ApplyTeleport, OtherLevelPosition, EntityMoved,
     Viewshed, RunState};
@@ -19,7 +20,7 @@ impl<'a> System<'a> for MovementSystem {
                         WriteExpect<'a, RunState>);
 
     fn run(&mut self, data : Self::SystemData) {
-        let (mut map, mut position, blockers, entities, mut apply_move,
+        let (map, mut position, _blockers, entities, mut apply_move,
             mut apply_teleport, mut other_level, mut moved,
             mut viewsheds, player_entity, mut runstate) = data;
 

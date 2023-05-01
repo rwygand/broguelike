@@ -1,5 +1,4 @@
 use bracket_lib::prelude::{ BaseMap, Algorithm2D, Point, RGB, SmallVec, DistanceAlg };
-use specs::prelude::*;
 use serde::{Serialize, Deserialize};
 use std::collections::HashSet;
 mod tiletype;

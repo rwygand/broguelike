@@ -1,75 +1,12 @@
-use bracket_lib::prelude::*;
 use specs::prelude::*;
-use super::{WantsToPickupItem, Name, InBackpack, Position, gamelog::GameLog, WantsToUseItem,
-    Consumable, ProvidesHealing, WantsToDropItem, InflictsDamage, Map, SufferDamage,
-    AreaOfEffect, Confusion, Equippable, Equipped, WantsToRemoveItem, particle_system::ParticleBuilder,
-    ProvidesFood, HungerClock, HungerState, MagicMapper, RunState, Pools, EquipmentChanged,
-    TownPortal, IdentifiedItem, Item, ObfuscatedName, MagicItem, MasterDungeonMap};
-
-fn obfuscate_name(
-    item: Entity, 
-    names: &ReadStorage::<Name>, 
-    magic_items : &ReadStorage::<MagicItem>,
-    obfuscated_names : &ReadStorage::<ObfuscatedName>,
-    dm : &MasterDungeonMap,
-) -> String 
-{
-    if let Some(name) = names.get(item) {
-        if magic_items.get(item).is_some() {
-            if dm.identified_items.contains(&name.name) {
-                name.name.clone()
-            } else if let Some(obfuscated) = obfuscated_names.get(item) {
-                obfuscated.name.clone()
-            } else {
-                "Unidentified magic item".to_string()
-            }
-        } else {
-            name.name.clone()
-        }
-
-    } else {
-        "Nameless item (bug)".to_string()
-    }
-}
-
-pub struct ItemCollectionSystem {}
-
-impl<'a> System<'a> for ItemCollectionSystem {
-    #[allow(clippy::type_complexity)]
-    type SystemData = ( ReadExpect<'a, Entity>,
-                        WriteExpect<'a, GameLog>,
-                        WriteStorage<'a, WantsToPickupItem>,
-                        WriteStorage<'a, Position>,
-                        ReadStorage<'a, Name>,
-                        WriteStorage<'a, InBackpack>,
-                        WriteStorage<'a, EquipmentChanged>,
-                        ReadStorage<'a, MagicItem>,
-                        ReadStorage<'a, ObfuscatedName>,
-                        ReadExpect<'a, MasterDungeonMap>
-                      );
-
-    fn run(&mut self, data : Self::SystemData) {
-        let (player_entity, mut gamelog, mut wants_pickup, mut positions, names,
-            mut backpack, mut dirty, magic_items, obfuscated_names, dm) = data;
-
-        for pickup in wants_pickup.join() {
-            positions.remove(pickup.item);
-            backpack.insert(pickup.item, InBackpack{ owner: pickup.collected_by }).expect("Unable to insert backpack entry");
-            dirty.insert(pickup.collected_by, EquipmentChanged{}).expect("Unable to insert");
-
-            if pickup.collected_by == *player_entity {
-                gamelog.entries.push(
-                    format!(
-                        "You pick up the {}.", 
-                        obfuscate_name(pickup.item, &names, &magic_items, &obfuscated_names, &dm)
-                    )
-                );
-            }
-        }
-
-        wants_pickup.clear();
-    }
-}
+use crate::{
+    components::*,
+    map::Map,
+    gamelog::GameLog, RunState,
+    particle_system::ParticleBuilder,
+};
+use bracket_lib::terminal::*;
+use bracket_lib::pathfinding::field_of_view;
 
 pub struct ItemUseSystem {}
 
@@ -100,7 +37,7 @@ impl<'a> System<'a> for ItemUseSystem {
                         WriteStorage<'a, EquipmentChanged>,
                         ReadStorage<'a, TownPortal>,
                         WriteStorage<'a, IdentifiedItem>
-                      );
+    );
 
     #[allow(clippy::cognitive_complexity)]
     fn run(&mut self, data : Self::SystemData) {
@@ -306,108 +243,5 @@ impl<'a> System<'a> for ItemUseSystem {
         }
 
         wants_use.clear();
-    }
-}
-
-pub struct ItemDropSystem {}
-
-impl<'a> System<'a> for ItemDropSystem {
-    #[allow(clippy::type_complexity)]
-    type SystemData = ( ReadExpect<'a, Entity>,
-                        WriteExpect<'a, GameLog>,
-                        Entities<'a>,
-                        WriteStorage<'a, WantsToDropItem>,
-                        ReadStorage<'a, Name>,
-                        WriteStorage<'a, Position>,
-                        WriteStorage<'a, InBackpack>,
-                        WriteStorage<'a, EquipmentChanged>,
-                        ReadStorage<'a, MagicItem>,
-                        ReadStorage<'a, ObfuscatedName>,
-                        ReadExpect<'a, MasterDungeonMap>
-                      );
-
-    fn run(&mut self, data : Self::SystemData) {
-        let (player_entity, mut gamelog, entities, mut wants_drop, names, mut positions,
-            mut backpack, mut dirty, magic_items, obfuscated_names, dm) = data;
-
-        for (entity, to_drop) in (&entities, &wants_drop).join() {
-            let mut dropper_pos : Position = Position{x:0, y:0};
-            {
-                let dropped_pos = positions.get(entity).unwrap();
-                dropper_pos.x = dropped_pos.x;
-                dropper_pos.y = dropped_pos.y;
-            }
-            positions.insert(to_drop.item, Position{ x : dropper_pos.x, y : dropper_pos.y }).expect("Unable to insert position");
-            backpack.remove(to_drop.item);
-            dirty.insert(entity, EquipmentChanged{}).expect("Unable to insert");
-
-            if entity == *player_entity {
-                gamelog.entries.push(
-                    format!(
-                        "You drop the {}.",
-                        obfuscate_name(to_drop.item, &names, &magic_items, &obfuscated_names, &dm)
-                    )
-                );
-            }
-        }
-
-        wants_drop.clear();
-    }
-}
-
-pub struct ItemRemoveSystem {}
-
-impl<'a> System<'a> for ItemRemoveSystem {
-    #[allow(clippy::type_complexity)]
-    type SystemData = (
-                        Entities<'a>,
-                        WriteStorage<'a, WantsToRemoveItem>,
-                        WriteStorage<'a, Equipped>,
-                        WriteStorage<'a, InBackpack>
-                      );
-
-    fn run(&mut self, data : Self::SystemData) {
-        let (entities, mut wants_remove, mut equipped, mut backpack) = data;
-
-        for (entity, to_remove) in (&entities, &wants_remove).join() {
-            equipped.remove(to_remove.item);
-            backpack.insert(to_remove.item, InBackpack{ owner: entity }).expect("Unable to insert backpack");
-        }
-
-        wants_remove.clear();
-    }
-}
-
-pub struct ItemIdentificationSystem {}
-
-impl<'a> System<'a> for ItemIdentificationSystem {
-    #[allow(clippy::type_complexity)]
-    type SystemData = (
-                        ReadStorage<'a, crate::components::Player>,
-                        WriteStorage<'a, IdentifiedItem>,
-                        WriteExpect<'a, crate::map::MasterDungeonMap>,
-                        ReadStorage<'a, Item>,
-                        ReadStorage<'a, Name>,
-                        WriteStorage<'a, ObfuscatedName>,
-                        Entities<'a>
-                      );
-
-    fn run(&mut self, data : Self::SystemData) {
-        let (player, mut identified, mut dm, items, names, mut obfuscated_names, entities) = data;
-
-        for (_p, id) in (&player, &identified).join() {
-            if !dm.identified_items.contains(&id.name) && crate::raws::is_tag_magic(&id.name) {
-                dm.identified_items.insert(id.name.clone());
-
-                for (entity, _item, name) in (&entities, &items, &names).join() {
-                    if name.name == id.name {
-                        obfuscated_names.remove(entity);
-                    }
-                }
-            }
-        }
-
-        // Clean up
-        identified.clear();
     }
 }

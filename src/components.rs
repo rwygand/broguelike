@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use specs::prelude::*;
 use specs_derive::*;
 use bracket_lib::prelude::{Point, FontCharType, RGB};
